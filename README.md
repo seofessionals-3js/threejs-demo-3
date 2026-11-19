@@ -1,8 +1,8 @@
-# seofessionals three.js Demo 3
+# three.js Demo 3
 
 Ein flacher Schnitt 1:100 durch ein Haus auf drei Ebenen plottet sich selbst. Beim Scrollen öffnet sich das Objektiv, während der Schnitt exakt seine Größe behält, sodass die Räume dahinter in eine Schnittperspektive zurückweichen. Ein Scan verwandelt die Tusche in Material und Sonnenlicht, dann besucht die Kamera das Haus Ebene für Ebene, immer mit Blick auf den Schnitt, und endet beim farbigen Schnitt.
 
-[**Live ansehen**](https://seofessionals-3js.github.io/seofessionals-threejs-demo-3/?dir=a) · [**Startprompt**](PROMPT.md) · [**Alle Demos**](https://seofessionals-3js.github.io/seofessionals-threejs-demos/)
+[**Live ansehen**](https://seofessionals-3js.github.io/threejs-demo-3/?dir=a) · [**Startprompt**](PROMPT.md) · [**Alle Demos**](https://seofessionals-3js.github.io/threejs-demos/)
 
 Zwei Varianten mit demselben Code: `?dir=a` öffnet das Objektiv und geht Raum für Raum durch das Haus (Standard), `?dir=c` taucht in die Küche ein und geht die Treppe hinunter.
 
@@ -32,6 +32,6 @@ Dann http://localhost:8000/ öffnen. Am besten auf einem Laptop mit aktuellem Br
 
 ## Herkunft und Lizenz
 
-Basiert auf „Open Section“ aus [flat-to-3d](https://github.com/Sam1983Aing/flat-to-3d) von Samnang Aing, veröffentlicht unter der MIT-Lizenz, und für seofessionals ins Deutsche übersetzt. Die Lizenz liegt unverändert in [LICENSE](LICENSE).
+Basiert auf „Open Section“ aus [flat-to-3d](https://github.com/Sam1983Aing/flat-to-3d) von Samnang Aing, veröffentlicht unter der MIT-Lizenz, und ins Deutsche übersetzt. Die Lizenz liegt unverändert in [LICENSE](LICENSE).
 
 Alle Büros, Häuser, Adressen und Kontaktdaten in der Demo sind erfunden. three.js (MIT) wird von einem CDN geladen, die Schriften Chakra Petch und IBM Plex Mono von Google Fonts (SIL Open Font License).
