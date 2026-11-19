@@ -2,7 +2,7 @@
 // rendered in material and light, then the studio's closing section.
 //
 //   ?dir=a   Open the lens: the lens opens while the cut keeps its size, then a 3D tour, room by room and depth by depth.
-//   ?dir=c   Down the stair: scroll down is down, the camera rides the stair to the living room and out to the pool.
+//   ?dir=c   Down the stair: scroll down is down, the camera goes from the upper floor down the stair to the living room and out to the pool.
 //
 // &p=0.4 freezes the page at 40% of its journey, &skip jumps past the loader (both for stills).
 // Every moment below is placed in vh of scroll, so the pacing reads the same as checkpoint 1.
@@ -19,68 +19,68 @@ const E = createEngine(document.getElementById('gl'), document.getElementById('o
 const phone = () => E.W < 700;
 
 // ---- camera states. rect: what must show on the cut. at: where its middle sits on screen. ----
-const HERO = { rect: [-10.9, -5.8, 37.9, 22.2], at: [0.5, 0.5], lens: 1.6, vp: [13.4, 4.2], cut: -4.6, fog: 34 };
-const HERO_P = { rect: [-0.6, -2.2, 17.4, 10.6], at: [0.5, 0.6], lens: 1.6, vp: [8.4, 4.2], cut: -4.6, fog: 34 };
-const PAN = [-11.6, -9.2, 37.2, 18.8];          // the hero's frame, moved down so the house sits in the middle
+const HERO = { rect: [-5.6, -4.8, 35.2, 11.6], at: [0.5, 0.5], lens: 1.6, vp: [11.4, 3.1], cut: -4.6, fog: 34 };
+const HERO_P = { rect: [3.0, -2.0, 19.0, 8.6], at: [0.5, 0.6], lens: 1.6, vp: [11.0, 3.1], cut: -4.6, fog: 34 };
+const PAN = [-6.2, -7.0, 34.6, 9.4];           // the hero's frame, moved down so the house sits in the middle
 const at = (rect, lens, vp, fog = 20, cut = -4.6) => ({ rect, lens, vp, cut, fog });
-const PH_L = { rect: [-1.5, -2.5, 13.5, 11], at: [0.5, 0.46], lens: 1.6, vp: [6, 4.2], cut: -4.6, fog: 34 };
-const PH_R = { rect: [17.0, -2.5, 32.0, 11], at: [0.5, 0.46], lens: 1.6, vp: [24.5, 4.2], cut: -4.6, fog: 34 };
+const PH_L = { rect: [2.5, -2.5, 15.5, 9.5], at: [0.5, 0.46], lens: 1.6, vp: [9, 3.1], cut: -4.6, fog: 34 };
+const PH_R = { rect: [17.0, -2.5, 32.0, 9.5], at: [0.5, 0.46], lens: 1.6, vp: [24.5, 3.1], cut: -4.6, fog: 34 };
 
 const PLAN = {
   a: {
     total: 1600,
     desk: [HERO, { ...HERO, rect: PAN, lens: 64 },
-      at([-1.84, -3.1, 24.64, 12.1], 60, [13.4, 3.5], 30),     // the whole house in sectional perspective
-      at([1.6, 0.2, 17.8, 9.4], 66, [9.5, 4.9]),               // 01: the stair landing
-      at([0.2, 6.0, 9.6, 11.0], 68, [4.2, 8.2]),               // 02: the kitchen & lantern
-      at([4.6, 2.6, 15.2, 6.9], 68, [9.6, 4.9]),               // 03: the bedrooms & patio
-      at([10.0, -0.8, 23.6, 7.0], 66, [17.4, 1.6], 22),        // 04: the living room
-      at([17.5, -2.6, 33.5, 7.2], 56, [25.5, 1.6], 26),        // 05: the garden and the pool
+      at([0.8, -2.6, 21.6, 8.6], 60, [11.4, 2.7], 30),        // the whole house in sectional perspective
+      at([5.2, -0.5, 14.8, 7.1], 66, [10.3, 3.3]),             // 01: the stair under its rooflight
+      at([3.4, -0.6, 11.9, 3.5], 68, [7.4, 1.6]),              // 02: kitchen and dining
+      at([3.4, 2.7, 12.4, 7.1], 68, [7.6, 4.7]),               // 03: the upper floor
+      at([10.4, -0.8, 19.0, 7.0], 66, [14.6, 1.6], 22),        // 04: the living room
+      at([16.6, -2.6, 32.6, 6.6], 56, [25.0, 1.6], 26),        // 05: the terrace and the pool
       HERO, HERO],
     phone: [HERO_P, { ...HERO_P, at: [0.5, 0.5], lens: 64 },
-      at([4.5, 0, 14.5, 11], 60, [10.0, 3.6], 30),
-      at([6.4, -0.5, 12.6, 10.5], 66, [9.5, 4.9]),
-      at([0.8, 6.0, 8.4, 11.0], 68, [4.2, 8.2]),
-      at([6.4, 2.8, 13.4, 6.8], 68, [9.8, 4.9]),
-      at([14.0, -0.6, 22.4, 7.0], 66, [18.0, 1.6], 22),
-      at([22.0, -2.4, 32.0, 6.0], 56, [27.0, 1.6], 26),
+      at([5.5, -0.5, 16.5, 9.5], 60, [11.0, 3.0], 30),
+      at([7.4, -0.5, 13.4, 9.0], 66, [10.3, 3.3]),
+      at([4.2, -0.4, 11.4, 3.6], 68, [7.4, 1.6]),
+      at([4.2, 2.8, 11.6, 6.9], 68, [7.6, 4.7]),
+      at([11.0, -0.6, 18.4, 7.0], 66, [14.6, 1.6], 22),
+      at([21.0, -2.4, 31.5, 5.6], 56, [26.0, 1.6], 26),
       PH_L, PH_R],
     // [from vh, to vh, from state, to state]
     track: [[45, 255, 0, 1], [255, 375, 1, 2], [430, 560, 2, 3], [620, 740, 3, 4], [800, 920, 4, 5], [980, 1100, 5, 6], [1160, 1280, 6, 7], [1330, 1440, 7, 8], [1450, 1550, 8, 9]],
     colour: [135, 355], flatAgain: 1400,
     stops: [555, 735, 915, 1095, 1270],
-    captions: [[50, 250, 'Das Objektiv öffnet sich. Der Schnitt behält seine Größe.'], [265, 425, 'Material und Sonnenlicht ziehen in den 3D-Schnitt ein.'], [440, 615, 'Näher heran, an die Treppenachse.'],
-      [630, 795, 'Hinauf zu Küche und Laterne, auf Straßenniveau.'], [810, 975, 'Hinunter zur Schlafebene und zum Innenhof.'], [990, 1155, 'Noch einmal hinunter, in den 6,25 m hohen Wohnraum.'],
-      [1170, 1325, 'Hinaus auf die Kalksteinterrasse und zum Pool.'], [1340, 1445, 'Zurück zur Schnittebene 1:100.'], [1450, 1700, 'Derselbe Schnitt, in Material und Licht gerendert.']],
-    rooms: [[470, 615, '01 // SCHNITT A–A · TREPPENACHSE', 'Die Treppe', 'Ein Lauf pro Ebene · 16 Steigungen à 206 mm · oben ein Oberlicht'],
-      [660, 795, '02 // EBENE +6.60M · STRASSENNIVEAU', 'Küche & Laterne', 'Straßenniveau · Terrazzo-Insel, Eichenboden · zweigeschossige Laterne über dem Esstisch'],
-      [840, 975, '03 // EBENE +3.30M · INNENHOF', 'Schlafzimmer & Patio', 'Die Treppe endet hier · Schlaf- und Arbeitszimmer am Podest · Zypressenhof hinter dem Glas'],
-      [1020, 1155, '04 // EBENE ±0.00M · ZWEIGESCHOSSIG', 'Der Wohnraum', '6,25 m hoch · Bibliothekswand aus Eiche · raumhohes Glas zum Garten'],
-      [1200, 1325, '05 // EBENE ±0.00M · TERRASSE', 'Garten & Pool', 'Auskragender 6-m-Pool auf der Kalksteinterrasse · das Tal darunter']],
+    captions: [[50, 250, 'Das Objektiv öffnet sich. Der Schnitt behält seine Größe.'], [265, 425, 'Material und Licht ziehen in den 3D-Schnitt ein.'], [440, 615, 'Näher heran, an die Treppenachse.'],
+      [630, 795, 'Hinunter zu Küche und Esstisch.'], [810, 975, 'Hinauf zur Schlafebene.'], [990, 1155, 'Hinüber in den 5,95 m hohen Wohnraum.'],
+      [1170, 1325, 'Hinaus auf die Terrasse und zum Pool.'], [1340, 1445, 'Zurück zur Schnittebene 1:100.'], [1450, 1700, 'Derselbe Schnitt, in Material und Licht gerendert.']],
+    rooms: [[470, 615, '01 // SCHNITT A–A · TREPPENACHSE', 'Die Treppe', 'Ein gerader Lauf · 16 Steigungen à 194 mm · oben ein Oberlicht'],
+      [660, 795, '02 // EBENE ±0.00M · STRASSENSEITE', 'Küche & Essen', 'Terrazzo-Insel · schwarze Fronten · Esstisch für vier unter der Decke'],
+      [840, 975, '03 // EBENE +3.10M · OBERGESCHOSS', 'Schlafen & Arbeiten', 'Die Treppe endet hier · Bett an der Straßenwand · Schreibtisch an der Brüstung'],
+      [1020, 1155, '04 // EBENE ±0.00M · ZWEIGESCHOSSIG', 'Der Wohnraum', '5,95 m hoch · Bibliothekswand aus Räuchereiche · raumhohes Glas zum Garten'],
+      [1200, 1325, '05 // EBENE ±0.00M · TERRASSE', 'Terrasse & Pool', 'Sechs Meter Wasser im Rasen · dahinter fällt der Garten ab']],
   },
   c: {
     total: 1250,
     desk: [HERO, { ...HERO, rect: PAN, lens: 12 },
-      at([0.4, 3.25, 11.6, 11.2], 72, [6.0, 8.2], 18),
-      at([4.6, 1.4, 15.0, 8.0], 74, [9.8, 4.9], 18),
-      at([9.0, -0.9, 21.6, 7.0], 74, [14.6, 1.6], 18),
-      at([18.0, -2.4, 31.5, 6.6], 66, [25.0, 1.6], 24),
+      at([3.4, 2.5, 12.2, 7.2], 72, [7.4, 4.7], 18),
+      at([6.6, -0.2, 14.8, 5.2], 74, [10.6, 2.4], 18),
+      at([9.6, -0.9, 19.2, 7.0], 74, [14.4, 1.6], 18),
+      at([16.8, -2.4, 31.6, 6.6], 66, [25.0, 1.6], 24),
       HERO, HERO],
     phone: [HERO_P, { ...HERO_P, at: [0.5, 0.5], lens: 12 },
-      at([2.6, 6.0, 9.6, 9.6], 70, [6.1, 8.2], 18),
-      at([6.4, 3.0, 13.4, 6.6], 72, [9.8, 4.9], 18),
-      at([13.5, 0.2, 18.5, 6.9], 72, [15.6, 1.6], 18),
-      at([22.5, -2.0, 31.5, 5.0], 66, [27.0, 1.6], 24),
+      at([4.4, 2.9, 11.2, 6.6], 70, [7.4, 4.7], 18),
+      at([7.6, 0.2, 13.6, 4.8], 72, [10.6, 2.4], 18),
+      at([11.4, 0.2, 17.6, 6.9], 72, [14.6, 1.6], 18),
+      at([21.5, -2.0, 31.5, 5.0], 66, [26.0, 1.6], 24),
       PH_L, PH_R],
     track: [[40, 90, 0, 1], [90, 200, 1, 2], [280, 440, 2, 3], [520, 680, 3, 4], [760, 880, 4, 5], [940, 1050, 5, 6], [1060, 1160, 6, 7]],
     colour: [60, 200], flatAgain: 1010,
     stops: [155, 240, 480, 720, 905],
-    captions: [[45, 200, 'Hinein in Treppe und Laterne, auf Straßenniveau.'], [285, 520, 'Nach unten scrollen heißt hinab · vorbei am Innenhof.'], [525, 760, 'Der Wohnraum, zweigeschossig.'],
-      [765, 940, 'Über den Kalksteinboden hinaus zum Pool.'], [945, 1055, 'Wieder hinauf, zum ganzen Haus.'], [1060, 1400, 'Derselbe Schnitt, in Material und Licht gerendert.']],
-    rooms: [[200, 280, 'EBENE +6.60M // STRASSENNIVEAU', 'Straßenniveau & Laterne', 'Die Küche · Terrazzo und Eiche · zweigeschossige Laterne über dem Tisch'],
-      [440, 520, 'EBENE +3.30M // SCHLAFEBENE', 'Schlafzimmer & Patio', 'Die Treppe endet hier · Schlafzimmer, Arbeitszimmer und verglaster Zypressenhof'],
-      [680, 760, 'EBENE ±0.00M // WOHNRAUM', 'Der Wohnraum', '6,25 m hoch · Bibliothekswand · Glas zum Garten'],
-      [880, 940, 'EBENE ±0.00M // TERRASSE', 'Garten & Pool', 'Ein 6 m auskragender Pool am Hang']],
+    captions: [[45, 200, 'Hinein in die Schlafebene, unter das Oberlicht.'], [285, 520, 'Nach unten scrollen heißt hinab · die Treppe entlang.'], [525, 760, 'Der Wohnraum, zweigeschossig.'],
+      [765, 940, 'Über die Terrasse hinaus zum Pool.'], [945, 1055, 'Wieder zurück, zum ganzen Haus.'], [1060, 1400, 'Derselbe Schnitt, in Material und Licht gerendert.']],
+    rooms: [[200, 280, 'EBENE +3.10M // OBERGESCHOSS', 'Schlafen & Arbeiten', 'Bett an der Straßenwand · Schreibtisch an der Brüstung · Oberlicht über der Treppe'],
+      [440, 520, 'EBENE ±0.00M // TREPPENACHSE', 'Die Treppe hinab', 'Ein gerader Lauf · 16 Steigungen · unten Küche und Esstisch'],
+      [680, 760, 'EBENE ±0.00M // WOHNRAUM', 'Der Wohnraum', '5,95 m hoch · Bibliothekswand · Glas zum Garten'],
+      [880, 940, 'EBENE ±0.00M // TERRASSE', 'Terrasse & Pool', 'Sechs Meter Wasser im Rasen']],
   },
 }[DIR];
 const T = PLAN.total;
@@ -137,7 +137,7 @@ function words(vh, st, closing) {
   }
   if (DIR === 'c') {
     let lv = st.vp[1] - 1.6;
-    lv = [0, 3.3, 6.6].find(L => Math.abs(lv - L) < 0.12) ?? lv;
+    lv = [0, 3.1].find(L => Math.abs(lv - L) < 0.12) ?? lv;
     hudEl.innerHTML = vh < 170 || vh > PLAN.flatAgain - 20
       ? (vh > PLAN.flatAgain + 30 ? 'SEC A–A // <b>1:100 MATERIALSCHNITT</b>' : 'SEC A–A // <b>MASSSTAB 1:100</b>')
       : `EBENE <b>${lv > 0.05 ? '+' + fmt(lv) : '±0.00'}M</b> · SCHNITT Z <b>${fmt(st.cut)}M</b>`;
@@ -222,7 +222,7 @@ async function start() {
   let ready = false;
   (function tick() {
     const u = Math.min(1, (performance.now() - t0) / MIN || 1);
-    const lv = 10.1 * ease(u);
+    const lv = 6.45 * ease(u);
     count.textContent = lv < 0.005 ? '±0.00' : '+' + lv.toFixed(2);
     bar.style.transform = `scaleX(${ease(u)})`;
     if (u < 1 || !ready) requestAnimationFrame(tick);

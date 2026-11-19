@@ -1,12 +1,12 @@
-// Casa Graó: an invented house stepping down a hillside, for the direction sketches.
+// Casa Dos: an invented house of two storeys on a level plot, for the direction sketches.
 //
 // Every solid is a profile drawn in the section plane (x along the section, y up, metres)
 // pushed back along the depth axis z, from z0 to z1. The camera looks from +z, the front
 // facade is at z = 0 and the back wall at z = -10. A cut at depth zc keeps everything with
-// z <= zc, and the black fill on the cut is the profile itself.
+// z <= zc, and the fill on the cut is the profile itself.
 //
-// Levels: L0 garden and living ±0.00, L1 bedrooms +3.30, L2 entrance and kitchen +6.60
-// (street level), roof +10.10.
+// Levels: L0 kitchen, dining and living ±0.00, L1 bedroom and study +3.10, roof +6.45.
+// West (left) is the street and the forecourt, east the terrace, the pool and the garden.
 
 export const pieces = [];
 export const floors = [];      // floor rectangles that get a tile grid {x0, x1, z0, z1, y, step}
@@ -22,136 +22,70 @@ const furn = (pts, z0, z1, extra) => add('furn', pts, z0, z1, { mat: MAT, ...ext
 
 const D0 = -10, D1 = 0;               // house depth
 const LANE = [-5.2, -3.9];            // the stair runs in this strip, the main cut goes through it
-// The house changes along its depth, so a moving cut has something to find. Nothing changes inside the
-// stair lane, so the main section (cut at -4.6) is the same drawing as before.
-//   in front of the stair: a loggia on the street at L2 (z -2 to 0), a gallery over the living room at L1
-//   behind the stair: a courtyard through L1 and the terrace (PATIO), a lantern on the roof over the dining table
-const PATIO = { x0: 10.8, x1: 14.2, z0: -9.7, z1: -6.6 };
-const LANTERN = { x0: 6.4, x1: 7.9, z0: -9.7, z1: -6.6 };      // clear of the stair's rooflight, and of the parapet on C in perspective
-const LOGGIA = -2.0, GALLERY = -3.6;
+export const L0 = 0, L1 = 3.1, ROOF = 6.45;
+const XW = 4.0, XG = 11.3, XE = 18.2; // street wall, the edge of the upper floor, the garden front
+const DOOR = [-3.4, -2.2];            // the street door, in front of the stair
+const SKY = [8.4, 9.9];               // the rooflight over the top of the flight
+const FT = 8.0, FB = 12.6;            // the flight: its top on L1, its foot in the living room
 
 // ---------------------------------------------------------------- the land
-// Natural hillside, and the same hill carved where the house sits in it.
-const natural = [[-30, -14], [50, -14], [50, -4.2], [38, -2.4], [34, 0], [23.2, 0], [16, 2.0], [8, 4.6], [0, 6.6],
-  [-1.6, 6.6], [-1.6, 6.45], [-16, 6.45], [-30, 9.8]];
-const carved = [[-30, -14], [50, -14], [50, -4.2], [38, -2.4], [34, 0], [31.25, 0], [31.25, -1.75], [24.75, -1.75], [24.75, 0],
-  [23.2, 0], [23.2, -0.35], [10.15, -0.35], [10.15, 2.95], [5.15, 2.95], [5.15, 6.25], [0.15, 6.25], [0.15, 6.6],
-  [-1.6, 6.6], [-1.6, 6.45], [-16, 6.45], [-30, 9.8]];
+// A level plot: the forecourt on the street, the terrace, a pool set into the lawn, then the garden falls away.
+const natural = [[-30, -14], [50, -14], [50, -1.6], [40, -0.8], [33, 0], [-30, 0]];
+const carved = [[-30, -14], [50, -14], [50, -1.6], [40, -0.8], [33, 0], [30.75, 0], [30.75, -1.75], [24.25, -1.75], [24.25, 0],
+  [XE, 0], [XE, -0.35], [XW, -0.35], [XW, 0], [-30, 0]];
 add('earth', carved, D0 - 0.3, D1 + 0.3, { ground: true });
 add('earth', natural, -40, D0 - 0.3, { ground: true });
-const front = [[-30, -14], [50, -14], [50, -4.2], [38, -2.4], [34, 0], [23.2, 0], [23.2, -0.35], [10.15, -0.35], [10.15, 2.95], [5.15, 2.95], [5.15, 6.25], [0.15, 6.25], [0.15, 6.6],
-  [-1.6, 6.6], [-1.6, 6.45], [-16, 6.45], [-30, 9.8]];
-add('earth', front, D1 + 0.3, 8, { ground: true });   // terraced in front of the house, so the facade can be seen whole
+add('earth', natural, D1 + 0.3, 8, { ground: true });
 // the ground line the hatch fades from, as a function of x (left to right)
-export const groundLine = [[-30, 9.8], [-16, 6.45], [-1.6, 6.45], [-1.6, 6.6], [0.15, 6.6], [0.16, 6.25], [5.15, 6.25], [5.16, 2.95],
-  [10.15, 2.95], [10.16, -0.35], [23.2, -0.35], [23.21, 0], [24.75, 0], [24.76, -1.75], [31.25, -1.75], [31.26, 0], [34, 0], [38, -2.4], [50, -4.2]];
+export const groundLine = [[-30, 0], [XW, 0], [XW + 0.01, -0.35], [XE, -0.35], [XE + 0.01, 0], [24.25, 0], [24.26, -1.75], [30.75, -1.75], [30.76, 0], [33, 0], [40, -0.8], [50, -1.6]];
 
 // ---------------------------------------------------------------- structure
-// retaining walls and footings, cut by any section through the house
-cut(R(0, 5.7, 0.3, 6.25), D0, D1, { mat: 'stone' });                // W0, street side of the kitchen, below the floor
-cut(R(0, 6.25, 0.3, 9.6), D0, LOGGIA, { mat: 'stone' });             // and above it, back to the loggia: local stone
-cut(R(0, 6.6, 0.3, 9.6), D1 - 0.3, D1);            // the loggia's corner columns
-cut(R(8.7, 6.6, 9.0, 9.3), D1 - 0.3, D1);
-cut(R(-0.25, 5.45, 0.55, 5.75), D0, D1, { mat: 'stone' });          // its footing
-cut(R(5.0, 2.6, 5.3, 6.25), D0, D1, { mat: 'stone' });              // W5, behind the bedrooms
-cut(R(4.75, 2.35, 5.55, 2.65), D0, D1, { mat: 'stone' });
-cut(R(10.0, -0.8, 10.3, 2.95), D0, D1, { mat: 'stone' });           // W10, behind the dining room
-cut(R(9.75, -1.05, 10.55, -0.75), D0, D1, { mat: 'stone' });
-
+// strip footings under the two long walls
+cut(R(XW - 0.25, -0.95, XW + 0.55, -0.35), D0, D1, { mat: 'stone' });
+cut(R(XE - 0.7, -0.95, XE + 0.1, -0.35), D0, D1, { mat: 'stone' });
+// the street wall in dark brick, with the door in front of the stair
+cut(R(XW, 2.3, XW + 0.3, 5.95), D0, D1, { mat: 'stone' });
+cut(R(XW, 0, XW + 0.3, 2.3), D0, DOOR[0], { mat: 'stone' });
+cut(R(XW, 0, XW + 0.3, 2.3), DOOR[1], D1, { mat: 'stone' });
 // L0 ground slab
-cut(R(10.0, -0.35, 23.2, 0), D0, D1);
-// L1 slab, with the void over the lower flight in the stair lane
-cut(R(5.0, 2.95, 10.3, 3.3), D0, D1);
-cut(R(13.6, 2.95, 15.0, 3.3), PATIO.z1, D1);
-cut(R(13.6, 2.95, 15.0, 3.3), D0, PATIO.z0);
-cut(R(PATIO.x1, 2.95, 15.0, 3.3), PATIO.z0, PATIO.z1);
-cut(R(10.3, 2.95, 13.6, 3.3), PATIO.z1, LANE[0]);
-cut(R(10.3, 2.95, 13.6, 3.3), D0, PATIO.z0);
-cut(R(10.3, 2.95, PATIO.x0, 3.3), PATIO.z0, PATIO.z1);
-cut(R(15.0, 2.95, 22.0, 3.3), GALLERY, D1);        // the gallery over the living room, in front of the stair
-cut(R(21.6, 2.65, 22.0, 2.95), GALLERY, D1);        // its edge beam
-cut(R(21.65, 0, 21.9, 2.65), -3.5, -3.25);          // and the columns that carry it
-cut(R(21.65, 0, 21.9, 2.65), -0.75, -0.5);
-cut(R(10.3, 2.95, 13.6, 3.3), LANE[1], D1);
-cut(R(14.6, 2.55, 15.0, 2.95), D0, D1);           // downstand beam where L1 stops over the living room
-cut(R(14.65, 0, 14.95, 2.55), -7.35, -7.05);       // and the two columns that carry it, on grid D
-cut(R(14.65, 0, 14.95, 2.55), -2.15, -1.85);
-// L2 slab and the terrace over the living room, with the void over the upper flight
-cut(R(0, 6.25, 5.3, 6.6), D0, D1);
-cut(R(8.6, 6.25, 9.0, 6.6), D0, D1);
-cut(R(5.3, 6.25, 8.6, 6.6), D0, LANE[0]);
-cut(R(5.3, 6.25, 8.6, 6.6), LANE[1], D1);
-for (const [y0, y1, kind] of [[6.25, 6.48, 'cut'], [6.48, 6.6, 'layer']]) {   // terrace slab, then its build-up
-  add(kind, R(9.0, y0, 23.2, y1), PATIO.z1, D1);
-  add(kind, R(9.0, y0, 23.2, y1), D0, PATIO.z0);
-  add(kind, R(9.0, y0, PATIO.x0, y1), PATIO.z0, PATIO.z1);
-  add(kind, R(PATIO.x1, y0, 23.2, y1), PATIO.z0, PATIO.z1);
-}
-// L1 east wall over the living room: sill, interior glass, head
-cut(R(14.75, 3.3, 15.0, 4.25), D0, GALLERY);
-cut(R(14.75, 5.9, 15.0, 6.25), D0, D1);
-add('glass', R(14.86, 4.25, 14.9, 5.9), D0, GALLERY);
-add('glass', R(15.0, 3.3, 22.0, 4.3), GALLERY - 0.04, GALLERY);   // the gallery's balustrades
-add('glass', R(21.96, 3.3, 22.0, 4.3), GALLERY, D1);
-// the courtyard: glass on three sides at both levels, and round its opening on the terrace
-for (const [y0, y1] of [[0, 2.95], [3.3, 6.25], [6.6, 7.6]]) {
-  add('glass', R(PATIO.x0, y0, PATIO.x1, y1), PATIO.z1 - 0.02, PATIO.z1 + 0.02);
-  add('glass', R(PATIO.x0 - 0.02, y0, PATIO.x0 + 0.02, y1), PATIO.z0, PATIO.z1);
-  add('glass', R(PATIO.x1 - 0.02, y0, PATIO.x1 + 0.02, y1), PATIO.z0, PATIO.z1);
-}
-// living room facade to the garden: full height glass between a sill and a deep head
-cut(R(22.75, 5.85, 23.2, 6.25), D0, D1);
-cut(R(22.75, 0, 23.0, 0.08), D0, D1);
-add('glass', R(22.85, 0.08, 22.89, 5.85), D0, D1);
-// kitchen facade to the terrace
-cut(R(8.75, 9.3, 9.3, 9.6), D0, D1);
-add('glass', R(8.93, 6.6, 8.97, 9.3), D0, LOGGIA);
-// roof over L2 with a rooflight above the stair, structure, insulation, parapets
-cut(R(-0.3, 9.6, 5.6, 9.85), D0, D1);
-cut(R(7.8, 9.6, 9.3, 9.85), LANTERN.z1, D1);
-cut(R(7.8, 9.6, 9.3, 9.85), D0, LANTERN.z0);
-cut(R(LANTERN.x1, 9.6, 9.3, 9.85), LANTERN.z0, LANTERN.z1);
-cut(R(5.6, 9.6, 7.8, 9.85), LANTERN.z1, LANE[0]);
-cut(R(5.6, 9.6, 7.8, 9.85), D0, LANTERN.z0);
-cut(R(5.6, 9.6, LANTERN.x0, 9.85), LANTERN.z0, LANTERN.z1);
-// the lantern: upstands, a solid back, glass to the south, a roof of its own
-for (const [a, b] of [[LANTERN.x0, LANTERN.x0 + 0.15], [LANTERN.x1 - 0.15, LANTERN.x1]]) {
-  cut(R(a, 9.6, b, 9.95), LANTERN.z0, LANTERN.z1);
-  add('glass', R(a + 0.055, 9.95, b - 0.055, 10.85), LANTERN.z0, LANTERN.z1);
-  cut(R(a, 10.85, b, 10.95), LANTERN.z0, LANTERN.z1);
-}
-cut(R(LANTERN.x0, 9.85, LANTERN.x1, 10.95), LANTERN.z0 - 0.15, LANTERN.z0);
-cut(R(LANTERN.x0 + 0.15, 9.6, LANTERN.x1 - 0.15, 9.9), LANTERN.z1 - 0.15, LANTERN.z1);
-add('glass', R(LANTERN.x0 + 0.15, 9.9, LANTERN.x1 - 0.15, 10.95), LANTERN.z1 - 0.1, LANTERN.z1 - 0.06);
-cut(R(LANTERN.x0 - 0.1, 10.95, LANTERN.x1 + 0.1, 11.2), LANTERN.z0 - 0.25, LANTERN.z1 + 0.1);
-add('layer', R(LANTERN.x0 - 0.1, 11.2, LANTERN.x1 + 0.1, 11.34), LANTERN.z0 - 0.25, LANTERN.z1 + 0.1);
-cut(R(5.6, 9.6, 7.8, 9.85), LANE[1], D1);
-add('layer', R(0, 9.85, 5.45, 10.1), D0, D1);
-add('layer', R(7.95, 9.85, 9.0, 10.1), LANTERN.z1, D1);
-add('layer', R(7.95, 9.85, 9.0, 10.1), D0, LANTERN.z0 - 0.15);
-add('layer', R(LANTERN.x1, 9.85, 9.0, 10.1), LANTERN.z0 - 0.15, LANTERN.z1);
-add('layer', R(5.45, 9.85, 7.95, 10.1), LANTERN.z1, LANE[0]);
-add('layer', R(5.45, 9.85, 7.95, 10.1), D0, LANTERN.z0 - 0.15);
-add('layer', R(5.45, 9.85, LANTERN.x0, 10.1), LANTERN.z0 - 0.15, LANTERN.z1);
-add('layer', R(5.45, 9.85, 7.95, 10.1), LANE[1], D1);
-cut(R(-0.3, 9.85, 0, 10.45), D0, D1);
-cut(R(9.0, 9.85, 9.3, 10.45), D0, D1);
-cut(R(6.05, 9.6, 7.8, 9.85), LANE[0], LANE[1]);   // the roof closes over the lower part of the void
-add('layer', R(6.2, 9.85, 7.95, 10.1), LANE[0], LANE[1]);
-cut(R(5.45, 9.85, 5.6, 10.3), LANE[0], LANE[1]);   // rooflight upstands, over the top of the flight
-cut(R(6.05, 9.85, 6.2, 10.3), LANE[0], LANE[1]);
-add('glass', [[5.45, 10.3], [6.2, 10.3], [6.2, 10.34], [5.45, 10.34]], LANE[0], LANE[1]);
-// terrace balustrades, garden side and street front
-add('glass', R(22.95, 6.6, 22.99, 7.7), D0, D1);
-add('glass', R(9.0, 6.6, 22.99, 7.7), D1 - 0.04, D1);
-cut(R(9.0, 7.7, 23.02, 7.76), D1 - 0.06, D1);
-cut(R(22.92, 7.7, 23.02, 7.76), D0, D1);
+cut(R(XW, -0.35, XE, 0), D0, D1);
+// L1 slab: it stops at XG, where the living room rises through both storeys, and leaves the stair lane open
+cut(R(XW + 0.3, 2.75, XG, L1), D0, LANE[0]);
+cut(R(XW + 0.3, 2.75, XG, L1), LANE[1], D1);
+cut(R(XW + 0.3, 2.75, FT, L1), LANE[0], LANE[1]);               // the landing at the top of the flight
+cut(R(XG - 0.4, 2.35, XG, 2.75), D0, LANE[0]);                  // downstand beam where L1 stops
+cut(R(XG - 0.4, 2.35, XG, 2.75), LANE[1], D1);
+cut(R(XG - 0.35, 0, XG - 0.05, 2.35), -7.35, -7.05);            // and the two columns that carry it
+cut(R(XG - 0.35, 0, XG - 0.05, 2.35), -2.15, -1.85);
+// balustrades: along the edge over the living room, and round the void of the stair
+add('glass', R(XG - 0.04, L1, XG, L1 + 1.05), D0, LANE[0]);
+add('glass', R(XG - 0.04, L1, XG, L1 + 1.05), LANE[1], D1);
+add('glass', R(FT, L1, XG, L1 + 1.0), LANE[0] - 0.04, LANE[0]);
+add('glass', R(FT, L1, XG, L1 + 1.0), LANE[1], LANE[1] + 0.04);
+// the garden front: full height glass between a sill and a deep head
+cut(R(XE - 0.45, 5.55, XE, 5.95), D0, D1);
+cut(R(XE - 0.45, 0, XE - 0.2, 0.08), D0, D1);
+add('glass', R(XE - 0.35, 0.08, XE - 0.31, 5.55), D0, D1);
+// flat roof with a rooflight above the stair: structure, build-up, parapets
+cut(R(XW - 0.3, 5.95, XE + 0.3, 6.2), D0, LANE[0]);
+cut(R(XW - 0.3, 5.95, XE + 0.3, 6.2), LANE[1], D1);
+cut(R(XW - 0.3, 5.95, SKY[0], 6.2), LANE[0], LANE[1]);
+cut(R(SKY[1], 5.95, XE + 0.3, 6.2), LANE[0], LANE[1]);
+add('layer', R(XW, 6.2, XE, ROOF), D0, LANE[0]);
+add('layer', R(XW, 6.2, XE, ROOF), LANE[1], D1);
+add('layer', R(XW, 6.2, SKY[0] - 0.15, ROOF), LANE[0], LANE[1]);
+add('layer', R(SKY[1] + 0.15, 6.2, XE, ROOF), LANE[0], LANE[1]);
+cut(R(SKY[0] - 0.15, 6.2, SKY[0], 6.65), LANE[0], LANE[1]);     // rooflight upstands
+cut(R(SKY[1], 6.2, SKY[1] + 0.15, 6.65), LANE[0], LANE[1]);
+add('glass', [[SKY[0] - 0.15, 6.65], [SKY[1] + 0.15, 6.65], [SKY[1] + 0.15, 6.69], [SKY[0] - 0.15, 6.69]], LANE[0], LANE[1]);
+cut(R(XW - 0.3, 6.2, XW, 6.9), D0, D1);
+cut(R(XE, 6.2, XE + 0.3, 6.9), D0, D1);
 // pool shell and water
-cut(R(24.75, -1.75, 25.0, 0), D0 - 0.3, D1 + 0.3);
-cut(R(31.0, -1.75, 31.25, 0), D0 - 0.3, D1 + 0.3);
-cut(R(24.75, -1.75, 31.25, -1.5), D0 - 0.3, D1 + 0.3);
-cut(R(24.75, -1.75, 31.25, 0), D0 - 0.3, D0 - 0.05);
-add('water', R(25.0, -1.5, 31.0, -0.12), D0 - 0.05, D1 + 0.3);
+cut(R(24.25, -1.75, 24.5, 0), D0 - 0.3, D1 + 0.3);
+cut(R(30.5, -1.75, 30.75, 0), D0 - 0.3, D1 + 0.3);
+cut(R(24.5, -1.75, 30.5, -1.5), D0 - 0.3, D1 + 0.3);
+cut(R(24.5, -1.5, 30.5, 0), D0 - 0.3, D0 - 0.05);
+add('water', R(24.5, -1.5, 30.5, -0.12), D0 - 0.05, D1 + 0.3);
 
 // back walls (parallel to the cut, seen beyond it) with their windows cut out as holes
 function wall(x0, y0, x1, y1, holes, z0, z1, mat) {
@@ -161,18 +95,17 @@ function wall(x0, y0, x1, y1, holes, z0, z1, mat) {
     add('glass', R(a + 0.05, b + 0.05, c - 0.05, d - 0.05), z0 + 0.12, z0 + 0.14);
   });
 }
-wall(0.3, 6.6, 8.75, 9.6, [[1.5, 7.75, 4.5, 8.9], [6.3, 6.8, 8.3, 9.1]], D0, D0 + 0.3);
-wall(5.3, 3.3, 14.75, 6.25, [[6.0, 4.6, 8.8, 5.8]], D0, D0 + 0.3);
-wall(10.3, 0, 15.0, 2.95, [], D0, D0 + 0.3);
-wall(15.0, 0, 22.85, 6.25, [[15.6, 3.4, 22.2, 5.9]], D0, D0 + 0.3);
+wall(XW + 0.3, L0, XG, 2.75, [[5.2, 1.1, 8.6, 2.1]], D0, D0 + 0.3);
+wall(XW + 0.3, L1, XG, 5.95, [[4.9, 4.1, 6.9, 5.4], [9.1, 4.1, 10.7, 5.4]], D0, D0 + 0.3);
+wall(XG, L0, XE - 0.45, 5.95, [[12.4, 3.5, 16.8, 5.5]], D0, D0 + 0.3);
 // front walls, only ever seen as ghosts
-wall(0.3, 6.6, 8.75, 9.6, [[2.0, 6.6, 3.1, 8.9], [4.6, 7.4, 7.6, 9.0]], LOGGIA - 0.3, LOGGIA);
-wall(5.3, 3.3, 14.75, 6.25, [[6.5, 4.2, 9.5, 5.8]], D1 - 0.3, D1, 'stone');     // the lower two floors in local stone, the top one in plaster
-wall(10.3, 0, 15.0, 2.95, [[11.2, 0.6, 14.2, 2.4]], D1 - 0.3, D1, 'stone');
-wall(15.0, 0, 22.85, 6.25, [[16, 0.4, 22, 5.6]], D1 - 0.3, D1, 'stone');
+wall(XW + 0.3, L0, XG, 2.75, [[5.4, 0.9, 8.4, 2.3]], D1 - 0.3, D1, 'stone');
+wall(XW + 0.3, L1, XG, 5.95, [[5.2, 4.0, 10.0, 5.5]], D1 - 0.3, D1);
+wall(XG, L0, XE - 0.45, 5.95, [[12.2, 0.4, 17.0, 5.4]], D1 - 0.3, D1, 'stone');
 
 // ---------------------------------------------------------------- the stair
-// Two straight flights in the stair lane, cascading down the hill with the house.
+// One straight flight in the stair lane, from the landing on L1 down into the living room. Kitchen and dining
+// stay in view below its high end.
 function flight(xTop, yTop, xBot, yBot, n, z0, z1) {
   const dir = Math.sign(xBot - xTop), run = Math.abs(xBot - xTop) / n, rise = (yTop - yBot) / n;
   const slope = rise / run, wv = 0.2 * Math.hypot(1, slope);
@@ -188,19 +121,9 @@ function flight(xTop, yTop, xBot, yBot, n, z0, z1) {
   cut(pts, z0, z1);
   return { run, rise, at: x => yTop - Math.floor((x - xTop) * dir / run + 1) * rise };
 }
-export const upper = flight(5.3, 6.6, 9.62, 3.3, 16, LANE[0], LANE[1]);
-export const lower = flight(10.3, 3.3, 14.62, 0, 16, LANE[0], LANE[1]);
-// balustrades round the two voids
-add('glass', R(5.3, 6.6, 8.6, 7.6), LANE[0] - 0.04, LANE[0]);
-add('glass', R(8.56, 6.6, 8.6, 7.6), LANE[0], LANE[1]);
-add('glass', R(5.3, 6.6, 8.6, 7.6), LANE[1], LANE[1] + 0.04);
-add('glass', R(10.3, 3.3, 13.6, 4.3), LANE[0] - 0.04, LANE[0]);
-add('glass', R(13.56, 3.3, 13.6, 4.3), LANE[0], LANE[1]);
-add('glass', R(10.3, 3.3, 13.6, 4.3), LANE[1], LANE[1] + 0.04);
-// handrails along the flights, on the far side of the lane
-const rail = (x0, y0, x1, y1) => add('furn', [[x0, y0 + 0.9], [x1, y1 + 0.9], [x1, y1 + 0.94], [x0, y0 + 0.94]], LANE[0] + 0.04, LANE[0] + 0.08, { mat: 'metal' });
-rail(5.3, 6.6, 9.62, 3.3);
-rail(10.3, 3.3, 14.62, 0);
+export const flightA = flight(FT, L1, FB, L0, 16, LANE[0], LANE[1]);
+// a handrail along the flight, on the far side of the lane
+add('furn', [[FT, L1 + 0.9], [FB, L0 + 0.9], [FB, L0 + 0.94], [FT, L1 + 0.94]], LANE[0] + 0.04, LANE[0] + 0.08, { mat: 'metal' });
 
 // ---------------------------------------------------------------- furniture
 let seed = 7;
@@ -272,91 +195,57 @@ function books(x0, x1, y, z0, z1) {
   }
 }
 
-// L2, kitchen and dining at +6.60
-const L2 = 6.6;
+// L0, kitchen and dining under the upper floor at ±0.00 (everything behind the stair lane, so the cut shows it)
 as('terrazzo', () => {
-  furn(R(2.0, L2, 3.8, L2 + 0.1), -6.3, -3.3);
-  furn(R(1.9, L2 + 0.1, 3.9, L2 + 0.88), -6.4, -3.2);
-  furn(R(1.75, L2 + 0.88, 4.35, L2 + 0.93), -6.5, -3.1, { mat: 'stone' });
+  furn(R(4.9, L0, 6.2, L0 + 0.1), -8.1, -6.1);
+  furn(R(4.8, L0 + 0.1, 6.3, L0 + 0.88), -8.2, -6.0);
+  furn(R(4.65, L0 + 0.88, 6.75, L0 + 0.93), -8.3, -5.9, { mat: 'stone' });
 });
-stool(4.55, L2, -5.9); stool(4.55, L2, -5.0); stool(4.55, L2, -3.7);
-pendant(2.9, 9.6, 8.25, -5.8); pendant(2.9, 9.6, 8.25, -3.6);
+stool(6.95, L0, -7.8); stool(6.95, L0, -7.0); stool(6.95, L0, -6.2);
+pendant(5.55, 2.75, 1.65, -7.6); pendant(5.55, 2.75, 1.65, -6.6);
 as('sage', () => {
-  units(0.6, 5.0, L2 + 0.1, L2 + 0.88, 7, -9.7, -9.1);
-  furn(R(0.55, L2 + 0.88, 5.05, L2 + 0.92), -9.7, -9.05, { mat: 'stone' });
-  furn(R(0.6, L2, 5.0, L2 + 0.1), -9.7, -9.15);
-  units(0.45, 1.45, L2 + 1.3, L2 + 2.4, 2, -9.7, -9.35);
-  units(5.4, 6.05, L2, L2 + 2.4, 1, -9.7, -9.1);
+  units(4.6, 8.4, L0 + 0.1, L0 + 0.88, 6, -9.7, -9.1);
+  furn(R(4.55, L0 + 0.88, 8.45, L0 + 0.92), -9.7, -9.05, { mat: 'stone' });
+  furn(R(4.6, L0, 8.4, L0 + 0.1), -9.7, -9.15);
+  units(8.6, 9.3, L0, L0 + 2.4, 1, -9.7, -9.1);
 });
-table(6.1, 8.2, L2, -8.9, -6.9);
-chair(5.75, L2, -8.4, 1); chair(5.75, L2, -7.4, 1); chair(8.55, L2, -8.4, -1); chair(8.55, L2, -7.4, -1);
-pendant(7.15, 10.85, 8.1, -7.9, 0.28);                     // hangs from the lantern
-// entrance bench and coat rail by the street door, near the front
+table(8.3, 10.1, L0, -8.3, -6.6);
+chair(7.95, L0, -7.9, 1); chair(7.95, L0, -7.0, 1); chair(10.45, L0, -7.9, -1); chair(10.45, L0, -7.0, -1);
+pendant(9.2, 2.75, 1.55, -7.45, 0.3);
+
+// L0, the living room, two storeys high
+furn(R(12.6, L0, 16.7, L0 + 0.015), -9.0, -5.6, { mat: 'rug' });
+sofa(12.9, L0 + 0.015, -8.9, -5.9, 1);
+as('oak', () => { furn(R(14.4, L0 + 0.335, 15.6, L0 + 0.395), -8.1, -6.6); furn(R(14.6, L0 + 0.015, 15.4, L0 + 0.335), -7.9, -6.8); });
+furn([[17.05, L0 + 0.115], [16.3, L0 + 0.115], [16.25, L0 + 0.435], [16.9, L0 + 0.455], [17.2, L0 + 0.965], [17.3, L0 + 0.935]], -8.3, -7.5, { mat: 'ochre' });
+as('oak', () => { furn(R(16.85, L0 + 0.015, 16.9, L0 + 0.115), -8.25, -8.2); furn(R(16.35, L0 + 0.015, 16.4, L0 + 0.115), -8.25, -8.2); });
+furn(R(14.3, 3.3, 15.5, 3.36), -7.9, -6.7, { mat: 'brass' });   // the big pendant in the double height
+furn(R(14.89, 3.36, 14.91, 5.95), -7.31, -7.29, { mat: 'metal' });
 as('oak', () => {
-  furn(R(0.4, L2 + 0.42, 1.65, L2 + 0.47), -1.8, -0.6);      // a bench under the loggia
-  furn(R(0.45, L2, 0.5, L2 + 0.42), -1.7, -0.7);
-  furn(R(1.55, L2, 1.6, L2 + 0.42), -1.7, -0.7);
-});
-furn(R(0.3, L2 + 1.7, 1.2, L2 + 1.74), -3.6, -2.5, { mat: 'metal' });   // coat rail inside the door
-// a reading chair by the terrace glass
-furn([[7.3, L2 + 0.4], [8.1, L2 + 0.4], [8.15, L2 + 0.62], [7.45, L2 + 0.62], [7.35, L2 + 1.0], [7.25, L2 + 0.98]], -3.4, -2.6, { mat: 'ochre' });
-as('oak', () => { furn(R(7.35, L2, 7.4, L2 + 0.4), -3.35, -3.3); furn(R(8.0, L2, 8.05, L2 + 0.4), -3.35, -3.3); });
-furn(R(4.2, L2, 4.8, L2 + 0.75), -1.6, -1.0, { mat: 'terracotta' });   // a planter and a low table in the loggia
-as('teak', () => { furn(R(5.6, L2 + 0.38, 6.8, L2 + 0.42), -1.5, -0.8); furn(R(5.7, L2, 5.75, L2 + 0.38), -1.4, -1.35); furn(R(6.65, L2, 6.7, L2 + 0.38), -1.4, -1.35); });
-
-// L1, bedrooms at +3.30
-const L1 = 3.3;
-bed(5.35, L1, -9.6, -7.8);
-furn(R(5.35, L1, 5.85, L1 + 0.5), -7.7, -7.25, { mat: 'oak' });
-pendant(5.6, 6.25, 4.6, -7.45, 0.12);
-as('linen', () => units(9.0, 10.6, L1, L1 + 2.3, 2, -9.7, -9.1));
-table(12.9, 14.4, L1, -6.45, -5.75, 0.75);
-chair(13.65, L1, -5.45, -1);
-// the gallery: a reading corner over the living room
-furn([[17.0, L1 + 0.4], [17.8, L1 + 0.4], [17.85, L1 + 0.62], [17.15, L1 + 0.62], [17.05, L1 + 1.0], [16.95, L1 + 0.98]], -2.4, -1.6, { mat: 'ochre' });
-as('oak', () => { furn(R(17.05, L1, 17.1, L1 + 0.4), -2.35, -2.3); furn(R(17.7, L1, 17.75, L1 + 0.4), -2.35, -2.3); });
-table(18.4, 19.8, L1, -2.6, -1.4, 0.72);
-furn(R(15.2, L1, 16.4, L1 + 2.2), -0.5, -0.2, { light: true, mat: 'oak' });
-bed(5.35, L1, -3.5, -1.3);                 // the second bedroom, cut lengthwise by a front section
-
-// L0, dining and the double height living room at ±0.00
-const L0 = 0;
-table(11.2, 13.2, L0, -3.4, -1.8);
-chair(10.85, L0, -3.0, 1); chair(10.85, L0, -2.2, 1); chair(13.55, L0, -3.0, -1); chair(13.55, L0, -2.2, -1);
-pendant(12.2, 2.95, 1.5, -2.6, 0.3);                       // off the courtyard tree's axis
-furn(R(11.8, L0, 13.2, L0 + 0.45), -9.2, -8.0, { mat: 'stone' });   // the courtyard's planter
-as('oak', () => {
-  furn(R(10.3, L0, 10.34, 2.5), GALLERY, -0.4);              // library shelving along the retaining wall
-  for (const y of [0.06, 0.5, 0.94, 1.38, 1.82, 2.26]) {
-    furn(R(10.34, y, 10.64, y + 0.03), GALLERY, -0.4);
-    if (y < 2.2) furn(R(10.36, y + 0.03, 10.58, y + 0.3), GALLERY + 0.1, -0.5, { light: true, mat: 'book', tone: (y * 7.3) % 1 });
-  }
-});
-furn(R(17.2, L0, 21.0, L0 + 0.015), -7.6, -3.6, { mat: 'rug' });   // rug
-sofa(17.4, L0, -7.3, -4.0, 1);
-as('oak', () => { furn(R(18.9, L0 + 0.32, 20.1, L0 + 0.38), -6.4, -4.9); furn(R(19.1, L0, 19.9, L0 + 0.32), -6.2, -5.1); });
-furn([[21.6, L0 + 0.1], [20.85, L0 + 0.1], [20.8, L0 + 0.42], [21.45, L0 + 0.44], [21.75, L0 + 0.95], [21.85, L0 + 0.92]], -6.3, -5.5, { mat: 'ochre' });
-as('oak', () => { furn(R(21.4, L0, 21.45, L0 + 0.1), -6.25, -6.2); furn(R(20.9, L0, 20.95, L0 + 0.1), -6.25, -6.2); });
-furn(R(18.6, 3.1, 19.8, 3.16), -6.2, -5.0, { mat: 'brass' });   // the big pendant in the double height
-furn(R(19.19, 3.16, 19.21, 6.25), -5.61, -5.59, { mat: 'metal' });
-as('oak', () => {
-  furn(R(15.4, L0, 21.8, L0 + 0.04), -9.7, -9.35);            // bookshelf on the back wall
-  for (let i = 0; i <= 5; i++) furn(R(15.4, 0.5 + i * 0.5, 21.8, 0.53 + i * 0.5), -9.7, -9.35);
-  for (const sx of [15.4, 17.5, 19.65, 21.76]) furn(R(sx, L0, sx + 0.04, 3.03), -9.7, -9.35);
-  for (let i = 0; i < 5; i++) books(15.5, 21.7, 0.53 + i * 0.5, -9.7, -9.42);
-  furn(R(15.4, L0 + 0.04, 21.8, L0 + 0.5), -9.7, -9.35);
-  furn(R(15.4, L0, 18.0, L0 + 0.75), -1.0, -0.45);            // sideboard by the front wall
+  furn(R(11.7, L0, 17.4, L0 + 0.04), -9.7, -9.35);            // bookshelf on the back wall, under the high window
+  for (let i = 0; i <= 5; i++) furn(R(11.7, 0.5 + i * 0.5, 17.4, 0.53 + i * 0.5), -9.7, -9.35);
+  for (const sx of [11.7, 13.6, 15.5, 17.36]) furn(R(sx, L0, sx + 0.04, 3.03), -9.7, -9.35);
+  for (let i = 0; i < 5; i++) books(11.8, 17.3, 0.53 + i * 0.5, -9.7, -9.42);
+  furn(R(11.74, L0 + 0.04, 17.36, L0 + 0.5), -9.7, -9.35);
 });
 
-// terrace over the living room at +6.60
-furn(R(9.3, L2, 10.5, L2 + 0.55), -9.6, -7.4, { mat: 'terracotta' });   // planter, on solid deck beside the courtyard
-table(15.0, 17.4, L2, -2.8, -1.2, 0.74, 'teak');
-chair(14.65, L2, -2.4, 1, 'teak'); chair(14.65, L2, -1.6, 1, 'teak'); chair(17.75, L2, -2.4, -1, 'teak'); chair(17.75, L2, -1.6, -1, 'teak');
+// L1, bedroom and study at +3.10
+bed(4.35, L1, -9.6, -7.8);
+furn(R(4.35, L1, 4.85, L1 + 0.5), -7.7, -7.25, { mat: 'oak' });
+pendant(4.6, 5.95, 4.4, -7.45, 0.12);
+as('linen', () => units(7.2, 8.8, L1, L1 + 2.3, 2, -9.7, -9.1));
+table(9.2, 10.8, L1, -8.6, -7.9, 0.75);
+chair(10.0, L1, -7.55, -1);
+furn([[6.9, L1 + 0.4], [7.7, L1 + 0.4], [7.75, L1 + 0.62], [7.05, L1 + 0.62], [6.95, L1 + 1.0], [6.85, L1 + 0.98]], -6.6, -5.8, { mat: 'ochre' });   // a reading chair by the stair
+as('oak', () => { furn(R(6.95, L1, 7.0, L1 + 0.4), -6.55, -6.5); furn(R(7.6, L1, 7.65, L1 + 0.4), -6.55, -6.5); });
 
-// garden
-// (the garden lounger went: in the elevation it stood in front of the walker)
+// terrace and pool
+table(19.2, 21.0, L0, -8.6, -7.0, 0.74, 'teak');
+chair(18.85, L0, -8.2, 1, 'teak'); chair(18.85, L0, -7.4, 1, 'teak'); chair(21.35, L0, -8.2, -1, 'teak'); chair(21.35, L0, -7.4, -1, 'teak');
+lounger(22.2, L0, -6.6, -5.9, 1);
+furn(R(18.6, L0, 19.4, L0 + 0.55), -5.95, -5.45, { mat: 'terracotta' });   // a planter by the glass
 
-// ---------------------------------------------------------------- coursing on the stone of the south front
+// ---------------------------------------------------------------- coursing on the brick of the south front
 export const coursing = [];
 function course(x0, y0, x1, y1, holes) {
   const h = 0.28, z = D1 + 0.004;
@@ -379,71 +268,52 @@ function course(x0, y0, x1, y1, holes) {
     }
   }
 }
-course(5.3, 3.3, 14.75, 6.25, [[6.5, 4.2, 9.5, 5.8]]);
-course(10.3, 0, 15.0, 2.95, [[11.2, 0.6, 14.2, 2.4]]);
-course(15.0, 0, 22.85, 6.25, [[16, 0.4, 22, 5.6]]);
+course(XW + 0.3, L0, XG, 2.75, [[5.4, 0.9, 8.4, 2.3]]);
+course(XG, L0, XE - 0.45, 5.95, [[12.2, 0.4, 17.0, 5.4]]);
 
 // ---------------------------------------------------------------- floors with a tile grid
-floors.push({ x0: 10.3, x1: 22.85, z0: D0 + 0.3, z1: D1 - 0.3, y: 0, step: 0.6 });
-floors.push({ x0: 5.3, x1: 10.3, z0: D0 + 0.3, z1: D1 - 0.3, y: L1, step: 0.5 });
-floors.push({ x0: 13.6, x1: 14.75, z0: PATIO.z1, z1: D1 - 0.3, y: L1, step: 0.5 });
-floors.push({ x0: PATIO.x1, x1: 14.75, z0: D0 + 0.3, z1: PATIO.z1, y: L1, step: 0.5 });
-floors.push({ x0: 10.3, x1: 13.6, z0: PATIO.z1, z1: LANE[0], y: L1, step: 0.5 });
-floors.push({ x0: 10.3, x1: PATIO.x0, z0: D0 + 0.3, z1: PATIO.z1, y: L1, step: 0.5 });
-floors.push({ x0: 15.0, x1: 22.0, z0: GALLERY, z1: D1 - 0.3, y: L1, step: 0.5 });
-floors.push({ x0: 10.3, x1: 13.6, z0: LANE[1], z1: D1 - 0.3, y: L1, step: 0.5 });
-floors.push({ x0: 0.3, x1: 5.3, z0: D0 + 0.3, z1: D1 - 0.3, y: L2, step: 0.6 });
-floors.push({ x0: 5.3, x1: 8.6, z0: D0 + 0.3, z1: LANE[0], y: L2, step: 0.6 });
-floors.push({ x0: 5.3, x1: 8.6, z0: LANE[1], z1: D1 - 0.3, y: L2, step: 0.6 });
-floors.push({ x0: 9.0, x1: 22.9, z0: PATIO.z1, z1: D1, y: L2, step: 0.6 });
-floors.push({ x0: 9.0, x1: PATIO.x0, z0: D0, z1: PATIO.z1, y: L2, step: 0.6 });
-floors.push({ x0: PATIO.x1, x1: 22.9, z0: D0, z1: PATIO.z1, y: L2, step: 0.6 });
-floors.push({ x0: 23.2, x1: 24.75, z0: D0 - 0.3, z1: D1 + 0.3, y: 0, step: 0.6 });
+floors.push({ x0: XW + 0.3, x1: XE - 0.45, z0: D0 + 0.3, z1: D1 - 0.3, y: L0, step: 0.6 });
+floors.push({ x0: XW + 0.3, x1: XG, z0: D0 + 0.3, z1: LANE[0], y: L1, step: 0.5 });
+floors.push({ x0: XW + 0.3, x1: XG, z0: LANE[1], z1: D1 - 0.3, y: L1, step: 0.5 });
+floors.push({ x0: XW + 0.3, x1: FT, z0: LANE[0], z1: LANE[1], y: L1, step: 0.5 });
+floors.push({ x0: XE, x1: 24.25, z0: D0 - 0.3, z1: D1 + 0.3, y: L0, step: 0.6 });
+floors.push({ x0: -1.4, x1: XW, z0: D0 - 0.3, z1: D1 + 0.3, y: L0, step: 0.6 });
 
 // ---------------------------------------------------------------- entourage
 const nat = x => { for (let i = 0; i < natural.length - 1; i++) { const [ax, ay] = natural[i], [bx, by] = natural[i + 1]; if ((x - ax) * (x - bx) <= 0 && ax !== bx && ay > -6 && by > -6) return ay + (by - ay) * (x - ax) / (bx - ax); } return 0; };
-sprites.push({ type: 'walk', x: -7.5, y: 6.45, z: -6.5, h: 1.72 });
-sprites.push({ type: 'stand', x: 1.4, y: L2, z: -7.0, h: 1.68, flip: true });      // the cook, beside the island and clear of the pendants from every camera
-sprites.push({ type: 'stair', x: 8.1, y: upper.at(8.1), z: -4.62, h: 1.74 });             // low enough that the head clears the slab
-sprites.push({ type: 'sit', x: 17.85, y: L0 + 0.02, z: -6.2, h: 1.7 });
-sprites.push({ type: 'standDress', x: 16.1, y: L0, z: -4.62, h: 1.66 });          // at the cut for scale, clear of the chairs and the other figure
-sprites.push({ type: 'sit', x: 10.85, y: L0, z: -2.2, h: 1.68 });
-sprites.push({ type: 'cypress', x: 12.9, y: 0.45, z: -8.6, h: 7.6, tag: 'court' });                      // one slim tree, inside the courtyard glass, up past the terrace
-sprites.push({ type: 'walk', x: 1.6, y: L2, z: -1.1, h: 1.72, flip: true });               // arriving under the loggia
-sprites.push({ type: 'sit', x: 17.45, y: L1, z: -2.0, h: 1.66 });                          // reading on the gallery
-sprites.push({ type: 'stand', x: 21.6, y: L2, z: -5.6, h: 1.76, tag: 'terrace' });
-sprites.push({ type: 'standDress', x: 20.9, y: L2, z: -5.9, h: 1.64, flip: true, tag: 'terrace' });
-sprites.push({ type: 'walk', x: 33.2, y: 0, z: -3.0, h: 1.7, flip: true });
-sprites.push({ type: 'tree', x: 9.9, y: L2 + 0.55, z: -8.5, h: 3.2, tag: 'terrace' });
-sprites.push({ type: 'tree', x: 41.5, y: nat(41.5), z: -14, h: 5.0, flip: true });
-sprites.push({ type: 'cypress', x: -9.5, y: 6.45, z: -9.5, h: 6.4 });
-sprites.push({ type: 'cypress', x: -18.0, y: nat(-18), z: -18, h: 10.5 });
-sprites.push({ type: 'cypress', x: 32.4, y: nat(32.4), z: -19, h: 10.5 });
-sprites.push({ type: 'cypress', x: 33.5, y: nat(33.5), z: -22, h: 7.5 });
-sprites.push({ type: 'tree', x: 16.5, y: nat(16.5), z: -16, h: 4.8, flip: true });     // low enough to stay behind the house
-sprites.push({ type: 'tree', x: -6.6, y: 6.45, z: -12, h: 5.4 });
-sprites.push({ type: 'plant', x: 22.25, y: L0, z: -8.8, h: 1.5 });
-sprites.push({ type: 'plant', x: 0.9, y: L2, z: -8.6, h: 1.2 });
+sprites.push({ type: 'walk', x: -4.5, y: L0, z: -6.5, h: 1.72 });
+sprites.push({ type: 'stand', x: 11.95, y: L0, z: -8.6, h: 1.68, flip: true });           // between the dining table and the sofa
+sprites.push({ type: 'stair', x: 10.5, y: flightA.at(10.5), z: -4.62, h: 1.74 });
+sprites.push({ type: 'sit', x: 13.35, y: L0 + 0.035, z: -7.4, h: 1.7 });
+sprites.push({ type: 'standDress', x: 14.0, y: L0, z: -4.62, h: 1.66 });                  // at the cut for scale
+sprites.push({ type: 'sit', x: 7.95, y: L0, z: -7.0, h: 1.68 });
+sprites.push({ type: 'stand', x: 10.75, y: L1, z: -6.3, h: 1.74, flip: true });           // at the balustrade, looking down into the living room
+sprites.push({ type: 'stand', x: 20.1, y: L0, z: -6.2, h: 1.76, tag: 'terrace' });
+sprites.push({ type: 'standDress', x: 23.4, y: L0, z: -8.8, h: 1.64, flip: true, tag: 'terrace' });
+sprites.push({ type: 'walk', x: 33.4, y: nat(33.4), z: -6.0, h: 1.7, flip: true });
+sprites.push({ type: 'tree', x: 38.5, y: nat(38.5), z: -14, h: 5.0, flip: true });
+sprites.push({ type: 'cypress', x: -9.5, y: 0, z: -9.5, h: 6.4 });
+sprites.push({ type: 'cypress', x: -18.0, y: 0, z: -18, h: 9.5 });
+sprites.push({ type: 'cypress', x: 35.2, y: nat(35.2), z: -19, h: 9.0 });
+sprites.push({ type: 'cypress', x: 1.2, y: 0, z: -16, h: 7.5 });
+sprites.push({ type: 'tree', x: 21.4, y: 0, z: -16, h: 4.6, flip: true });
+sprites.push({ type: 'tree', x: -5.6, y: 0, z: -12, h: 5.4 });
+sprites.push({ type: 'plant', x: 17.25, y: L0, z: -9.2, h: 1.5 });
+sprites.push({ type: 'plant', x: 10.6, y: L1, z: -9.3, h: 1.2 });
 
 // ---------------------------------------------------------------- drawing notes
 export const levels = [
-  { y: 0, text: '±0.00', note: 'GARTEN' },
-  { y: 3.3, text: '+3.30', note: 'SCHLAFEN' },
-  { y: 6.6, text: '+6.60', note: 'STRASSE' },
-  { y: 10.1, text: '+10.10', note: 'DACH' },
+  { y: 0, text: '±0.00', note: 'ERDGESCHOSS' },
+  { y: 3.1, text: '+3.10', note: 'OBERGESCHOSS' },
+  { y: 6.45, text: '+6.45', note: 'DACH' },
 ];
-export const grid = [['A', 0.15], ['B', 5.15], ['C', 10.15], ['D', 14.88], ['E', 22.95]];
+export const grid = [['A', 4.15], ['B', 11.1], ['C', 17.87]];
 // [name, places to try in order, the depths of cut it belongs to (optional)]
 export const labels = [
-  ['KÜCHE', [[0.7, 9.2], [0.7, 7.75]], [D0, LOGGIA]], ['ESSEN', [[6.2, 9.15], [6.6, 7.6], [6.2, 8.0], [5.0, 9.15]], [D0, LOGGIA]],
-  ['LOGGIA', [[0.7, 9.2], [3.4, 9.2]], [LOGGIA, D1]],
-  ['SCHLAFEN', [[7.95, 5.85], [8.65, 5.85], [10.4, 5.85], [5.6, 4.75]]], 
-  ['GALERIE', [[17.2, 5.85], [19.6, 5.85]], [GALLERY, D1]],
-  ['BIBLIOTHEK', [[10.72, 2.55], [11.2, 2.5], [12.4, 2.5]], [LANE[1], D1]], ['FLUR', [[10.45, 2.5], [10.45, 1.6], [13.4, 2.5]], [PATIO.z1, LANE[1]]],
-  ['PATIO', [[10.95, 2.5], [10.95, 1.4], [13.75, 2.5], [10.95, 5.85]], [PATIO.z0, PATIO.z1]],
-  ['WOHNEN', [[16.0, 3.13], [19.4, 3.13], [16.0, 5.0], [16.0, 2.5]], [D0, GALLERY]],
-  ['WOHNEN', [[15.4, 2.55], [18.6, 2.55], [15.4, 1.7]], [GALLERY, D1]],      // under the gallery, the room keeps its name
-  ['TERRASSE', [[18.4, 7.05], [13.2, 7.05], [15.6, 7.05]]],      // the open deck first, never under the table
-  ['STRASSE', [[-3.4, 6.75], [-6.4, 6.75]]], ['POOL', [[25.3, 0.4], [27.4, 0.4]]],
+  ['KÜCHE', [[6.1, 2.4], [4.5, 1.25], [6.2, 1.9]]], ['ESSEN', [[8.2, 2.1], [7.5, 2.4], [9.9, 0.95]]],
+  ['SCHLAFEN', [[5.2, 5.65], [4.5, 5.0], [6.0, 5.2]]], ['ARBEITEN', [[9.1, 5.65], [10.0, 5.3], [9.2, 4.6]]],
+  ['WOHNEN', [[13.2, 3.05], [15.6, 3.05], [12.0, 5.6]]],
+  ['TERRASSE', [[19.6, 1.6], [19.0, 2.2]]],
+  ['VORPLATZ', [[-3.4, 0.35], [-6.4, 0.35]]], ['POOL', [[25.0, 0.4], [27.2, 0.4]]],
 ];
 export const LANE_Z = LANE;
