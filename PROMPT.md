@@ -28,15 +28,15 @@ Der Scrollablauf, der Reihe nach:
 
 Worauf es mir ankommt:
 - Der Schnitt ist kein Bild. Er ist das echte 3D-Modell, geschnitten von einer einzigen
-  Schnittebene, mit einem weißen Deckel auf jedem Körper, den die Ebene trifft, frontal
+  Schnittebene, mit einem rosa Deckel auf jedem Körper, den die Ebene trifft, frontal
   gesehen durch ein 1,6-Grad-Objektiv aus etwa 1 km Entfernung.
 - Beim Öffnen des Objektivs fährt die Kamera so heran, dass der Ausschnitt am Schnitt seine
   Größe nie ändert: Abstand = Bildhöhe / tan(Objektiv / 2). Die Kamera kreist nie.
 - Gib der Tiefe etwas zu zeigen: [zwei Ebenen, eine gerade Treppe unter einem Oberlicht, ein
   zweigeschossiger Wohnraum], echte Möbel. Nichts durchdringt sich, keine Figur steht in einem
   Möbel.
-- Der Look: ein CAD-Bildschirm bei Nacht. Blatt #0c0c0e, Tusche #f1eeea, ein roter Akzent
-  #e5202e, die Materialien nur in Grautönen und Rot.
+- Der Look: Aquarell und Bleistift auf Bütten. Papier #f3ebdb, Sepia #3b2f27, Schnittflächen
+  als rosa Poché #cf7d68, ein Akzent in Meerestürkis #1b7a8c, danach die Baustoffe Mallorcas.
   Chakra Petch für Überschriften, IBM Plex Mono für Beschriftungen. Passermarken in den Ecken,
   ein Schriftfeld, eine Maßstabsleiste, eine Live-Anzeige des Objektivwinkels und ein kleiner
   3D-Übersichtsplan, der zeigt, wo die Kamera ist.

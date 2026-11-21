@@ -15,49 +15,56 @@ import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { pieces, floors, sprites, groundLine, levels, grid, labels, coursing } from './house.js';
 import { drawSprite } from './entourage.js';
+import { tier, low, governor } from './quality.js';
 
-export const PAPER = 0x0c0c0e, INK = 0xf1eeea, ACCENT = 0xe5202e;      // black sheet, white ink, red pen
+// The medium is a Beaux-Arts section in watercolour: warm paper, sepia pencil, the cut laid in as a rose wash
+// (the poché the office is named after), and one pen in sea teal for everything the drawing does by itself.
+export const PAPER = 0xf3ebdb, INK = 0x3b2f27, ACCENT = 0x1b7a8c;
+const POCHE = 0xcf7d68, POCHE_DEEP = 0xb5604c, SIENNA = 0xa8734f, POOL = 0x58a6ae;
 
-// The colour the drawing turns into once the CAD material scan passes. Furniture says what it is made of (house.js),
-// the building is coloured by where a face is: floors by level, ceilings white, walls plaster, the roof gravel.
+// The washes the drawing takes on once the scan has passed: what a house in Deià is built of, and nothing else.
+// marès stone, lime plaster, terracotta, pine, smoked oak, terrazzo, linen, olive, pine green, the pool.
+// Furniture says what it is made of (house.js), the building is coloured by where a face is.
 const MATS = {
-  oak: 0x5a554f, teak: 0x625d57, linen: 0xdedbd5, linen2: 0xefece7, ochre: 0xc8202b, fabric: 0xd4d1cb,
-  terracotta: 0x2a2a2d, sage: 0x1b1b1e, terrazzo: 0x8e8e92, stone: 0x6c6c70, metal: 0x1a1a1c, brass: 0xe4e1dc,
-  bronze: 0x151517, rug: 0x4c4c51,
+  oak: 0xb88a57, teak: 0xb88a57, smoked: 0x6b4f3a,                // pine for tables and chairs, smoked oak for the library wall
+  linen: 0xe6dccb, linen2: 0xf2eadc, fabric: 0xddd2bf, rug: 0xd8ccb6,
+  ochre: 0xc0694a, terracotta: 0xc0694a,                           // the one warm textile, and the planter: both terracotta
+  sage: 0x7d8a5c,                                                  // the kitchen fronts, in olive
+  terrazzo: 0xd8d0c2, stone: 0xdcc7a0, metal: 0x6b4f3a, brass: 0xe6dccb, bronze: 0x6b4f3a,   // lamps in linen, frames in smoked oak
 };
-const BOOKS = [0x6c6c72, 0xc8202b, 0xe7e4df, 0x3a3a3f, 0xd0cdc8, 0x8a8a90, 0x4a4a4f, 0xb81c27, 0xf1eeea, 0x2a2a2d];
+const BOOKS = [0xc0694a, 0x7d8a5c, 0xd9b46a, 0x3e5c76, 0xefe6d4, 0xefe6d4, 0x7d8a5c, 0xd9b46a, 0xc0694a, 0x3e5c76];
 const UPPER = 3.1, ROOF_Y = 5.9;                                  // the upper floor, and where the roofs begin
 function colourFor(p, nx, ny, nz, x, y) {
   if (p.kind === 'furn') {
     if (p.mat === 'book') return BOOKS[Math.floor((p.tone || 0) * BOOKS.length) % BOOKS.length];
-    return MATS[p.mat] ?? 0x3a3a3e;
+    return MATS[p.mat] ?? 0xe6dccb;
   }
   if (p.kind === 'earth') {
     if (ny > 0.5) {
-      if (y > -0.05 && x < 4.0) return x < -1.4 ? 0x3a3a3e : 0x56565a;   // the street, then the paved forecourt
-      if (y > -0.05 && x > 18 && x < 24.3) return 0x5e5e62;      // the terrace
-      return 0x30323a;                                          // the lawn at night
+      if (y > -0.05 && x < 4.0) return x < -1.4 ? 0xd8d0c2 : 0xdcc7a0;   // the street in terrazzo grey, then the forecourt in marès
+      if (y > -0.05 && x > 18 && x < 24.3) return 0xdcc7a0;      // the terrace, marès again
+      return 0x7d8a5c;                                          // the lawn, an olive wash
     }
-    return 0x26262a;                                            // soil
+    return 0xcfae8c;                                            // soil, sienna thinned with water
   }
-  if (p.mat === 'stone') return ny > 0.5 ? 0x5a5a5e : 0x4c4c50; // dark brick
+  if (p.mat === 'stone') return 0xdcc7a0;                       // marès stone
   if (ny > 0.5) {                                               // floors, by level
-    if (y > ROOF_Y) return 0x3a3a3e;                            // the roof, gravel
-    if (Math.abs(y - UPPER) < 0.05) return 0x57524c;            // smoked oak upstairs
-    if (Math.abs(y) < 0.05) return 0x626266;                    // stone below
-    return 0x38383c;
+    if (y > ROOF_Y) return 0xd8d0c2;                            // the roof, gravel
+    if (Math.abs(y - UPPER) < 0.05) return 0xb88a57;            // pine boards upstairs
+    if (Math.abs(y) < 0.05) return 0xd8d0c2;                    // terrazzo below
+    return 0xe6dccb;                                            // treads and other tops
   }
-  if (ny < -0.5) return 0x3c3c40;                               // ceilings
-  return 0x303034;                                              // plaster
+  if (ny < -0.5) return 0xf5f0e6;                               // ceilings, limewashed
+  return 0xf5f0e6;                                              // lime plaster
 }
 
 // Material ID for procedural world-space architectural textures in fragment shader:
-// 0: lime plaster, 1: brick / stone pavers, 2: oak / teak planks, 3: terrazzo, 4: woven linen / fabric, 5: board-formed concrete / gravel, 6: earth
+// 0: lime plaster, 1: marès stone / pavers, 2: pine / smoked oak boards, 3: terrazzo, 4: woven linen / fabric, 5: limewashed soffit / gravel, 6: earth
 function matIdFor(p, nx, ny, nz, x, y) {
   if (p.kind === 'earth') return 6.0;
   if (p.mat === 'stone') return 1.0;
   if (p.mat === 'terrazzo') return 3.0;
-  if (p.mat === 'oak' || p.mat === 'teak') return 2.0;
+  if (p.mat === 'oak' || p.mat === 'teak' || p.mat === 'smoked') return 2.0;
   if (p.mat === 'linen' || p.mat === 'linen2' || p.mat === 'fabric' || p.mat === 'ochre' || p.mat === 'rug') return 4.0;
   if (p.kind === 'furn') return 0.0;
   if (ny > 0.5) {
@@ -72,22 +79,43 @@ function matIdFor(p, nx, ny, nz, x, y) {
 
 const LAYER_KEY = 1, LAYER_SPRITES = 2, LAYER_SKY = 3;     // the inset key sees ghosts and the accent plane, the page sees people and sky
 
-export function createEngine(canvas, overlay) {
-  let W = innerWidth, H = innerHeight;
-  const DPR = Math.min(devicePixelRatio, 2);
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(DPR);
-  renderer.setSize(W, H, false);
+// On phones the sun's shadow is read with four taps instead of sixteen: the map is drawn once and never moves,
+// so a bilinear 2x2 is all the softness the edge needs.
+if (low) {
+  THREE.ShaderChunk.shadowmap_pars_fragment = THREE.ShaderChunk.shadowmap_pars_fragment.replace(
+    'shadow = texture2DCompare( shadowMap, shadowCoord.xy, shadowCoord.z );',
+    `vec2 smT = vec2( 1.0 ) / shadowMapSize;
+			vec2 smP = shadowCoord.xy * shadowMapSize - 0.5;
+			vec2 smF = fract( smP );
+			vec2 smB = ( floor( smP ) + 0.5 ) * smT;
+			shadow = mix(
+				mix( texture2DCompare( shadowMap, smB, shadowCoord.z ), texture2DCompare( shadowMap, smB + vec2( smT.x, 0.0 ), shadowCoord.z ), smF.x ),
+				mix( texture2DCompare( shadowMap, smB + vec2( 0.0, smT.y ), shadowCoord.z ), texture2DCompare( shadowMap, smB + smT, shadowCoord.z ), smF.x ),
+				smF.y );`);
+}
+
+export function createEngine(canvas, overlay, onResolution = () => {}) {
+  // The size of the picture is the large viewport: on a phone the URL bar slides in and out while scrolling and
+  // fires resize every time. A probe 100lvh high does not change with it, so nothing is reallocated and nothing stretches.
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:100vh;height:100lvh;visibility:hidden;pointer-events:none';
+  document.body.appendChild(probe);
+  const stableH = () => probe.offsetHeight || innerHeight;
+  let W = innerWidth, H = stableH();
+  let DPR = 1;                                              // the drawing buffer, set by the governor below
+  const OV_DPR = Math.min(devicePixelRatio || 1, 2);        // the notes are text: they keep the screen's own sharpness
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: false, powerPreference: 'high-performance' });
   renderer.setClearColor(PAPER, 1);
   renderer.localClippingEnabled = true;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = low ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(PAPER, 10, 40);
   const camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 2000);
   const colourX = { value: -1000 };          // everything left of this x is in colour. The pen of the colour plot
+  const uDpr = { value: 1 };                 // device pixels per css pixel of the drawing buffer, for the hatch
   const uTime = { value: 0 };
   camera.layers.enable(LAYER_SPRITES); camera.layers.enable(LAYER_SKY);
   const keyCam = new THREE.PerspectiveCamera(23, 1.6, 1, 400);
@@ -108,12 +136,13 @@ export function createEngine(canvas, overlay) {
   const faces = new THREE.MeshLambertMaterial({ vertexColors: true, clippingPlanes: both, clipShadows: true, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
   const withColour = (m) => {
     m.onBeforeCompile = (sh) => {
-      sh.uniforms.uColourX = colourX;
+      sh.uniforms.uColourX = colourX; sh.uniforms.uAccent = { value: new THREE.Color(ACCENT) };
       sh.vertexShader = sh.vertexShader
         .replace('#include <common>', `#include <common>
           attribute vec3 color2;
           attribute float matId;
           uniform float uColourX;
+          uniform vec3 uAccent;
           varying vec3 vInk;
           varying float vCm;
           varying vec3 vWPos;
@@ -131,6 +160,7 @@ export function createEngine(canvas, overlay) {
       sh.fragmentShader = sh.fragmentShader
         .replace('#include <common>', `#include <common>
           uniform float uColourX;
+          uniform vec3 uAccent;
           varying vec3 vInk;
           varying float vCm;
           varying vec3 vWPos;
@@ -219,7 +249,7 @@ export function createEngine(canvas, overlay) {
           float texK = procTex(vWPos, vWNorm, vMatId);
           vec3 litCol = gl_FragColor.rgb * texK;
           vec3 col = mix(vInk, litCol, vCm);
-          // CAD amber contour & grid scan frontier when colourX sweeps across the house
+          // the scan frontier, drawn in the teal pen when colourX sweeps across the house
           if (uColourX > -11.8 && uColourX < 38.2) {
             float dScan = uColourX - vWPos.x;
             if (dScan > -0.12 && dScan < 1.55) {
@@ -228,7 +258,7 @@ export function createEngine(canvas, overlay) {
               float cy = 1.0 - smoothstep(0.0, 0.045, abs(fract(vWPos.y * 2.0 + 0.5) - 0.5));
               float cz = 1.0 - smoothstep(0.0, 0.045, abs(fract(vWPos.z * 2.0 + 0.5) - 0.5));
               float scanA = clamp(lead * 0.85 + band * max(cy, cz * 0.7) * 0.48, 0.0, 1.0);
-              col = mix(col, vec3(0.898, 0.125, 0.18), scanA);
+              col = mix(col, uAccent, scanA);
             }
           }
           gl_FragColor.rgb = col;
@@ -238,15 +268,26 @@ export function createEngine(canvas, overlay) {
     return m;
   };
   const SUN_DIR = new THREE.Vector3(-0.40, 0.55, 0.73).normalize();      // from the front left, about 33 degrees up
-  const LIGHT = { sky: Number(new URLSearchParams(location.search).get('sky') || 1.9), sun: Number(new URLSearchParams(location.search).get('sun') || 2.2) };
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x8a8a90, LIGHT.sky);     // a neutral studio sky
-  const sun = new THREE.DirectionalLight(0xffffff, LIGHT.sun);
+  const LIGHT = { sky: Number(new URLSearchParams(location.search).get('sky') || 2.3), sun: Number(new URLSearchParams(location.search).get('sun') || 2.4) };
+  const hemi = new THREE.HemisphereLight(0xf1f4f2, 0xc9b79a, LIGHT.sky);     // pale sky above, warm stone and lawn bounce below
+  const sun = new THREE.DirectionalLight(0xfff0dc, LIGHT.sun);       // Mallorca sun, a little warm
   sun.target.position.set(12, 3, -5);
   sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 45);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(4096, 4096);
-  Object.assign(sun.shadow.camera, { left: -36, right: 36, top: 26, bottom: -26, near: 1, far: 100 });
-  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+  const SHADOW = tier === 'high' ? 4096 : 2048;              // drawn once: 2048 over 72 m is 3.5 cm a texel
+  sun.shadow.mapSize.set(SHADOW, SHADOW);
+  // The shadow camera is fitted to what can throw a shadow and where it can land: the house, the terrace, and the
+  // ground behind and to the right of them. Twice the texels per metre of a loose box round the whole plot.
+  {
+    sun.updateMatrixWorld(); sun.target.updateMatrixWorld();
+    const sc = sun.shadow.camera;
+    sc.position.copy(sun.position); sc.lookAt(sun.target.position); sc.updateMatrixWorld();
+    const inv = sc.matrixWorld.clone().invert(), v = new THREE.Vector3(), lo = new THREE.Vector3(Infinity, Infinity, Infinity), hi = lo.clone().negate();
+    for (const x of [1.5, 33]) for (const y of [-2.2, 7.4]) for (const z of [-21, 0.6]) { v.set(x, y, z).applyMatrix4(inv); lo.min(v); hi.max(v); }
+    Object.assign(sc, { left: lo.x, right: hi.x, bottom: lo.y, top: hi.y, near: Math.max(0.5, -hi.z - 1), far: -lo.z + 1 });
+    sc.updateProjectionMatrix();
+  }
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = SHADOW >= 4096 ? 0.03 : 0.045;
   scene.add(hemi, sun, sun.target);
 
   // Warm interior architectural point lights so rooms glow in depth behind the section cut
@@ -255,25 +296,31 @@ export function createEngine(canvas, overlay) {
     pt.position.set(x, y, z);
     scene.add(pt);
   };
-  addWarmLight(5.55, 1.8, -7.1, 1.6, 9.0);      // kitchen island pendants (±0.00m)
-  addWarmLight(9.2, 1.7, -7.45, 1.9, 9.5);      // dining table (±0.00m)
-  addWarmLight(14.9, 3.1, -7.3, 2.4, 13.5);     // the big pendant in the double height (±0.00m)
-  addWarmLight(4.6, 4.5, -7.45, 1.5, 8.5);      // bedroom pendant (+3.10m)
-  addWarmLight(10.0, 4.6, -8.0, 1.5, 8.5);      // the study at the balustrade (+3.10m)
-  addWarmLight(8.3, 4.6, -4.6, 1.6, 9.0);       // the stair under its rooflight
+  if (low) {                                    // three pools of light instead of six: half the work per pixel
+    addWarmLight(7.4, 1.75, -7.3, 3.1, 10.5);     // kitchen and dining (±0.00m)
+    addWarmLight(14.9, 3.1, -7.3, 2.6, 13.5);     // the big pendant in the double height (±0.00m)
+    addWarmLight(7.6, 4.55, -6.9, 3.4, 10.5);     // bedroom, study and the stair under its rooflight (+3.10m)
+  } else {
+    addWarmLight(5.55, 1.8, -7.1, 1.6, 9.0);      // kitchen island pendants (±0.00m)
+    addWarmLight(9.2, 1.7, -7.45, 1.9, 9.5);      // dining table (±0.00m)
+    addWarmLight(14.9, 3.1, -7.3, 2.4, 13.5);     // the big pendant in the double height (±0.00m)
+    addWarmLight(4.6, 4.5, -7.45, 1.5, 8.5);      // bedroom pendant (+3.10m)
+    addWarmLight(10.0, 4.6, -8.0, 1.5, 8.5);      // the study at the balustrade (+3.10m)
+    addWarmLight(8.3, 4.6, -4.6, 1.6, 9.0);       // the stair under its rooflight
+  }
 
   let shadowKey = '';
   withColour(faces);
-  const glass = new THREE.MeshBasicMaterial({ color: 0xdfe6ea, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide, clippingPlanes: both });
-  const water = new THREE.MeshBasicMaterial({ color: 0x1a1c20, transparent: true, opacity: 0.84, clippingPlanes: both, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
+  const glass = new THREE.MeshBasicMaterial({ color: 0xcfe2e6, transparent: true, opacity: 0.16, depthWrite: false, side: THREE.DoubleSide, clippingPlanes: both });
+  const water = new THREE.MeshBasicMaterial({ color: 0xb4d2d4, transparent: true, opacity: 0.84, clippingPlanes: both, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
   water.onBeforeCompile = (sh) => {
     sh.uniforms.uColourX = colourX;
-    sh.uniforms.uTime = uTime;
+    sh.uniforms.uTime = uTime; sh.uniforms.uDeep = { value: new THREE.Color(0x3f8c95) }; sh.uniforms.uShallow = { value: new THREE.Color(POOL) };
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(position, 1.0)).xyz;');
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nuniform float uColourX;\nuniform float uTime;\nvarying vec3 vWPos;')
+      .replace('#include <common>', '#include <common>\nuniform float uColourX;\nuniform float uTime;\nuniform vec3 uDeep, uShallow;\nvarying vec3 vWPos;')
       .replace('#include <colorspace_fragment>', `{
         float cm = 1.0 - smoothstep(uColourX - 0.45, uColourX + 0.45, vWPos.x);
         if (cm > 0.01) {
@@ -281,21 +328,36 @@ export function createEngine(canvas, overlay) {
           float c2 = sin((vWPos.x - vWPos.z) * 8.5 + uTime * 2.3);
           float caustic = smoothstep(0.15, 0.85, (c1 + c2 * 0.5) * 0.5 + 0.5);
           float depthK = clamp((vWPos.y + 1.5) / 1.4, 0.0, 1.0);
-          vec3 deepCol = mix(vec3(0.05, 0.055, 0.065), vec3(0.16, 0.17, 0.19), depthK);
-          vec3 poolCol = deepCol + vec3(0.30, 0.31, 0.33) * caustic * (0.4 + 0.6 * depthK);
+          vec3 deepCol = mix(uDeep, uShallow, depthK);
+          vec3 poolCol = deepCol + uShallow * 0.28 * caustic * (0.4 + 0.6 * depthK);
           gl_FragColor.rgb = mix(gl_FragColor.rgb, poolCol, cm);
         }
       }
       #include <colorspace_fragment>`);
   };
   const capMat = {
-    cut: new THREE.MeshBasicMaterial({ color: INK, side: THREE.DoubleSide, fog: false, clippingPlanes: onlyReveal }),
+    cut: pocheWash(new THREE.MeshBasicMaterial({ color: POCHE, side: THREE.DoubleSide, fog: false, clippingPlanes: onlyReveal })),
     furn: withColourCap(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, fog: false, clippingPlanes: onlyReveal })),
-    layer: new THREE.MeshBasicMaterial({ color: 0x8e8e92, side: THREE.DoubleSide, fog: false, clippingPlanes: onlyReveal }),
-    glass: new THREE.MeshBasicMaterial({ color: 0xa8aeb2, side: THREE.DoubleSide, fog: false, clippingPlanes: onlyReveal }),
-    water: new THREE.MeshBasicMaterial({ color: 0x2a2e34, side: THREE.DoubleSide, fog: false, clippingPlanes: onlyReveal }),
+    layer: new THREE.MeshBasicMaterial({ color: 0xe0b3a1, side: THREE.DoubleSide, fog: false, clippingPlanes: onlyReveal }),
+    glass: new THREE.MeshBasicMaterial({ color: 0xbcd6da, side: THREE.DoubleSide, fog: false, clippingPlanes: onlyReveal }),
+    water: new THREE.MeshBasicMaterial({ color: 0xb4d2d4, side: THREE.DoubleSide, fog: false, clippingPlanes: onlyReveal }),
     earth: earthMaterial(),
   };
+  // the poché is laid in as a wash: the rose is a little deeper where the brush paused, a little thinner where it ran
+  function pocheWash(m) {
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uDeep = { value: new THREE.Color(POCHE_DEEP) };
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vWp;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWp = (modelMatrix * vec4(position, 1.0)).xy;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+        uniform vec3 uDeep; varying vec2 vWp;
+        float wh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float wn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f); return mix(mix(wh(i), wh(i+vec2(1,0)), f.x), mix(wh(i+vec2(0,1)), wh(i+vec2(1,1)), f.x), f.y); }`)
+        .replace('#include <color_fragment>', `#include <color_fragment>
+        float wash = wn(vWp * 1.7) * 0.6 + wn(vWp * 7.0) * 0.25;
+        diffuseColor.rgb = mix(diffuseColor.rgb, uDeep, smoothstep(0.35, 0.85, wash) * 0.55);`);
+    };
+    return m;
+  }
   function withColourCap(m) {
     m.onBeforeCompile = (sh) => {
       sh.uniforms.uColourX = colourX;
@@ -308,7 +370,8 @@ export function createEngine(canvas, overlay) {
     return m;
   }
   const DROP = { earth: 0.006, layer: 0.004, furn: 0.004, water: 0.004, glass: 0.003, cut: 0.002 };
-  const BASE = { cut: 0x131315, furn: 0x17171a, layer: 0x1b1b1e, earth: 0x101012 };
+  // what a face looks like on the drawing, before the scan: the paper, a breath darker (shade() does the rest)
+  const BASE = { cut: 0xf0e6d2, furn: 0xede2cb, layer: 0xeadfc8, earth: 0xe9dcc2 };
 
   const lineMats = [];
   function lineMat(color, width, { fog = true, planes = both, opacity = 1 } = {}) {
@@ -320,11 +383,11 @@ export function createEngine(canvas, overlay) {
   }
   const LINES = {
     beyond: lineMat(INK, 1.0),
-    fine: lineMat(0x5c5a57, 0.7),
-    glass: lineMat(0x8a9094, 0.8),
-    earth: lineMat(0x7a7773, 0.8),
-    light: lineMat(0x7a7773, 0.7),
-    stone: lineMat(0x6f6c68, 0.6),
+    fine: lineMat(0x7a6a5a, 0.7),
+    glass: lineMat(0x84776a, 0.8),
+    earth: lineMat(SIENNA, 0.8),
+    light: lineMat(0x84776a, 0.7),
+    stone: lineMat(0x9a8a78, 0.6),
     cap: lineMat(INK, 1.5, { fog: false, planes: onlyReveal }),
     ground: lineMat(INK, 2.2, { fog: false, planes: onlyReveal }),
     ghost: lineMat(INK, 0.85, { fog: false, planes: [], opacity: 0.22 }),
@@ -337,15 +400,15 @@ export function createEngine(canvas, overlay) {
     const g = groundLine.flat();
     const m = new THREE.ShaderMaterial({
       side: THREE.DoubleSide, clipping: true, clippingPlanes: late,
-      uniforms: { uInk: { value: new THREE.Color(INK) }, uPaper: { value: new THREE.Color(0x101012) }, uG: { value: g }, uDpr: { value: Math.min(devicePixelRatio, 2) },
-        uSoil: { value: new THREE.Color(0x242428) }, uSoilInk: { value: new THREE.Color(0x8a8884) }, uColourX: colourX },
+      uniforms: { uInk: { value: new THREE.Color(SIENNA) }, uPaper: { value: new THREE.Color(PAPER) }, uG: { value: g }, uDpr: uDpr,
+        uSoil: { value: new THREE.Color(0xe3c9a8) }, uSoilInk: { value: new THREE.Color(0x8f5f3e) }, uAccent: { value: new THREE.Color(ACCENT) }, uColourX: colourX },
       vertexShader: `#include <clipping_planes_pars_vertex>
         varying vec2 vXY;
         void main(){ vXY = (modelMatrix * vec4(position, 1.0)).xy; vec4 mvPosition = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mvPosition;
         #include <clipping_planes_vertex>
         }`,
       fragmentShader: `#include <clipping_planes_pars_fragment>
-        uniform vec3 uInk, uPaper, uSoil, uSoilInk; uniform float uG[${g.length}], uDpr, uColourX; varying vec2 vXY;
+        uniform vec3 uInk, uPaper, uSoil, uSoilInk, uAccent; uniform float uG[${g.length}], uDpr, uColourX; varying vec2 vXY;
         float toGround(vec2 p){
           float d = 1e9;
           for (int i = 0; i < ${g.length / 2 - 1}; i++){
@@ -370,7 +433,7 @@ export function createEngine(canvas, overlay) {
           vec3 col = mix(base, mix(uInk, uSoilInk, cm), line * fade * 0.78);
           if (uColourX > -11.8 && uColourX < 38.2) {
             float lead = exp(-pow((uColourX - vXY.x) / 0.06, 2.0));
-            col = mix(col, vec3(0.898, 0.125, 0.18), lead * 0.75 * fade);
+            col = mix(col, uAccent, lead * 0.75 * fade);
           }
           gl_FragColor = vec4(col, 1.0);
           #include <colorspace_fragment>
@@ -422,7 +485,7 @@ export function createEngine(canvas, overlay) {
     p.cap = new THREE.ShapeGeometry(p.shape, 1);
     if (p.kind === 'furn') {                       // grey on the drawing, its material a shade darker in colour
       const nv = p.cap.attributes.position.count, a = new Float32Array(nv * 3), b = new Float32Array(nv * 3);
-      col.set(0x55555a); col2.set(colourFor(p, 0, 0, 1, 0, 0)).multiplyScalar(0.82);
+      col.set(0xe3d6bc); col2.set(colourFor(p, 0, 0, 1, 0, 0)).multiplyScalar(0.9);
       for (let i = 0; i < nv; i++) { a.set([col.r, col.g, col.b], i * 3); b.set([col2.r, col2.g, col2.b], i * 3); }
       p.cap.setAttribute('color', new THREE.BufferAttribute(a, 3));
       p.cap.setAttribute('color2', new THREE.BufferAttribute(b, 3));
@@ -463,7 +526,7 @@ export function createEngine(canvas, overlay) {
   // a sky that arrives with the colour, behind the hill. On the drawing it is the paper
   const sky = new THREE.Mesh(new THREE.PlaneGeometry(260, 150), new THREE.ShaderMaterial({
     depthWrite: false,
-    uniforms: { uColourX: colourX, uTop: { value: new THREE.Color(0x0a0a0c) }, uLow: { value: new THREE.Color(0x1d1d21) }, uPaper: { value: new THREE.Color(PAPER) } },
+    uniforms: { uColourX: colourX, uTop: { value: new THREE.Color(0xcfe2e6) }, uLow: { value: new THREE.Color(0xf0e9d8) }, uPaper: { value: new THREE.Color(PAPER) } },
     vertexShader: `varying vec3 vW; void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: `uniform float uColourX; uniform vec3 uTop, uLow, uPaper; varying vec3 vW;
       void main(){
@@ -486,10 +549,13 @@ export function createEngine(canvas, overlay) {
 
   // ---- lids: rebuilt only when the cut enters or leaves a piece, otherwise just moved ----
   const caps = new THREE.Group(); scene.add(caps);
-  let capKey = '';
+  let capKey = '', capZ = NaN;
+  pieces.forEach((p, i) => { p.idx = i; });
   function updateCaps(zc) {
+    if (zc === capZ) return;                     // the cut has not moved: the lids are where they belong
+    capZ = zc;
     const on = pieces.filter(p => p.z0 < zc - 1e-4 && p.z1 > zc + 1e-4);
-    const key = on.map(p => pieces.indexOf(p)).join(',');
+    const key = on.map(p => p.idx).join(',');
     if (key !== capKey) {
       capKey = key;
       caps.children.slice().forEach(o => { caps.remove(o); o.geometry.dispose(); });
@@ -516,14 +582,14 @@ export function createEngine(canvas, overlay) {
 
   // ---- entourage: two drawings of each figure, one for far and one for close ----
   const spriteMeshes = [];
+  const SPRITE_Q = low ? 0.6 : tier === 'mid' ? 0.8 : 1;       // how large the figures are drawn: a phone shows them at a third of a desk's pixels
   function buildSprites(refPxPerM) {
     for (const s of sprites) {
-      const ref = s.type.startsWith('s') || s.type === 'walk' || s.type === 'child' ? 300 : 1100 / s.h;
+      const ref = (s.type.startsWith('s') || s.type === 'walk' || s.type === 'child' ? 300 : s.type === 'plant' ? 600 / s.h : 1100 / s.h) * SPRITE_Q;
       const tex = [1, 3.2].map(k => {
-        const d = drawSprite(s.type, s.h, THREE.MathUtils.clamp(1.15 * ref / (refPxPerM * k), 1.2, 16));
+        const d = drawSprite(s.type, s.h, THREE.MathUtils.clamp(1.15 * ref / (refPxPerM * k), 1.2, 16), SPRITE_Q);
         const t = new THREE.CanvasTexture(d.canvas);
         t.colorSpace = THREE.SRGBColorSpace;
-        t.anisotropy = renderer.capabilities.getMaxAnisotropy();
         t.userData = d;
         renderer.initTexture(t);      // upload now, behind the loader, not the first time the camera comes close
         return t;
@@ -537,7 +603,7 @@ export function createEngine(canvas, overlay) {
       m.renderOrder = 2;
       m.layers.set(LAYER_SPRITES);
       if (!GREENS[s.type]) {                     // people: a soft silhouette behind, to the right, as the sun from the left would leave
-        const sh = new THREE.Mesh(m.geometry, new THREE.MeshBasicMaterial({ map: tex[0], color: 0x000000, transparent: true, opacity: 0, alphaTest: 0.02, depthWrite: false, clippingPlanes: spritePlanes, side: THREE.DoubleSide }));
+        const sh = new THREE.Mesh(m.geometry, new THREE.MeshBasicMaterial({ map: tex[0], color: 0x6b4f3a, transparent: true, opacity: 0, alphaTest: 0.02, depthWrite: false, clippingPlanes: spritePlanes, side: THREE.DoubleSide }));
         sh.scale.x = f; sh.position.set(m.position.x + 0.14, m.position.y - 0.02, m.position.z - 0.06);
         sh.renderOrder = 1; sh.layers.set(LAYER_SPRITES);
         scene.add(sh);
@@ -553,11 +619,13 @@ export function createEngine(canvas, overlay) {
   // state: { rect: [x0, y0, x1, y1] on the cut, at: [ax, ay] where the rect's middle sits on screen (0..1),
   //          lens (deg), vp: [x, y] or null, cut, fog }
   const S = { cx: 0, cy: 0, frameH: 10, lens: 30, vp: [0, 0], cut: -4.6, fog: 34, reveal: 1000, colourX: -1000 };
-  const WHITE = new THREE.Color(0xffffff), GLASS0 = new THREE.Color(0xdfe6ea), GLASS1 = new THREE.Color(0xdfe6ea), WATER_CAP0 = new THREE.Color(0x2a2e34), WATER_CAP1 = new THREE.Color(0x3a4048), WATER0 = new THREE.Color(0x1a1c20), WATER1 = new THREE.Color(0x24272c);
-  const GREENS = { tree: new THREE.Color(0xb4b6b4), cypress: new THREE.Color(0x9a9c9a), plant: new THREE.Color(0xc0c2c0) };
+  const WHITE = new THREE.Color(0xffffff), GLASS0 = new THREE.Color(0xcfe2e6), GLASS1 = new THREE.Color(0xcfe2e6), WATER_CAP0 = new THREE.Color(0xb4d2d4), WATER_CAP1 = new THREE.Color(POOL), WATER0 = new THREE.Color(0xb4d2d4), WATER1 = new THREE.Color(0x4a97a0);
+  const GREENS = { tree: new THREE.Color(0x8d9a6b), cypress: new THREE.Color(0x6a8159), plant: new THREE.Color(0x8d9a6b) };
   let frameH = 10, dist = 100, ppm = 40;
-  const bands = () => (W < 700 ? [66, 132] : [80, 104]);              // px kept clear for the header and the captions
+  const short = () => W >= 700 && H < 520;                            // a phone held sideways: wide, and very low
+  const bands = () => (W < 700 ? [66, 132] : short() ? [58, 92] : [80, 104]);   // px kept clear for the header and the captions
   function resolve(st) {
+    if (st.short && short()) st = { ...st, ...st.short };              // a state may say how it sits on a low screen
     const aspect = W / H, [x0, y0, x1, y1] = st.rect;
     let fh, at = st.at;
     if (at) fh = Math.max((y1 - y0) / 2, (x1 - x0) / 2 / aspect);
@@ -581,7 +649,9 @@ export function createEngine(canvas, overlay) {
     camera.lookAt(vx, vy, S.cut);
     ppm = H / (2 * frameH);
     camera.setViewOffset(W, H, (cx - vx) * ppm, -(cy - vy) * ppm, W, H);
-    camera.near = Math.max(0.05, dist * 0.6); camera.far = dist + 160;
+    // Everything in front of the cut is clipped away, the sky hangs 50 m behind it: the depth buffer only has to span
+    // that slab. Seen through the 1.6 degree lens from 600 m this is what keeps lids and faces from flickering on a phone.
+    camera.near = Math.max(0.05, dist - 1.0); camera.far = dist + 70;
     camera.updateProjectionMatrix(); camera.updateMatrixWorld();
     scene.fog.near = dist; scene.fog.far = dist + S.fog;
     cutPlane.constant = S.cut;
@@ -589,12 +659,6 @@ export function createEngine(canvas, overlay) {
     revA.constant = ra; revB.constant = rb; revC.constant = rc;
     updateCaps(S.cut);
     redSheet.position.z = S.cut + 0.01; redFrame.position.z = S.cut;
-    // Update the active camera viewport box on the cut plane in the 3D radar key
-    const fw = Math.min(14.0, S.frameH * aspect), fh = Math.min(7.5, S.frameH);
-    const x0 = THREE.MathUtils.clamp(cx - fw, -2.8, 25.8), x1 = THREE.MathUtils.clamp(cx + fw, -2.8, 25.8);
-    const y0 = THREE.MathUtils.clamp(cy - fh, -3.0, 12.0), y1 = THREE.MathUtils.clamp(cy + fh, -3.0, 12.0);
-    camBoxGeo.setPositions([x0, y0, 0, x1, y0, 0, x1, y0, 0, x1, y1, 0, x1, y1, 0, x0, y1, 0, x0, y1, 0, x0, y0, 0]);
-    camBox.position.z = S.cut + 0.02;
 
     colourX.value = S.colourX ?? -1000;
     const t = THREE.MathUtils.clamp((colourX.value + 12) / 50.5, 0, 1);
@@ -610,12 +674,12 @@ export function createEngine(canvas, overlay) {
       const fade = m.userData.tag === 'terrace' ? THREE.MathUtils.smoothstep(S.frameH, 6.2, 7.6) : 1;
       m.material.opacity = fade; m.visible = fade > 0.01;
       const sh = m.userData.shadow;
-      if (sh) { sh.material.opacity = 0.17 * c * fade; sh.visible = sh.material.opacity > 0.005; }
+      if (sh) { sh.material.opacity = 0.2 * c * fade; sh.visible = sh.material.opacity > 0.005; }
     }
     const tanHalf = Math.tan(half);
     for (const m of spriteMeshes) {
-      const px = DPR * H / (2 * Math.max(0.5, camera.position.z - m.position.z) * tanHalf);
-      const want = px > m.userData.refPxPerM * DPR * 1.9 ? 1 : 0;
+      const px = H / (2 * Math.max(0.5, camera.position.z - m.position.z) * tanHalf);
+      const want = px > m.userData.refPxPerM * 1.9 ? 1 : 0;
       if (m.material.map !== m.userData.tex[want]) { m.material.map = m.userData.tex[want]; m.material.needsUpdate = false; }
     }
   }
@@ -624,10 +688,30 @@ export function createEngine(canvas, overlay) {
   const g2 = overlay.getContext('2d');
   const P = new THREE.Vector3();
   const scr = (x, y) => { P.set(x, y, S.cut).project(camera); return [(P.x + 1) / 2 * W, (1 - P.y) / 2 * H]; };
+  // The notes sit on a canvas of their own over the picture. It is only touched while there is something to write:
+  // through the walk in the house it stays cleared and hidden, so the phone has one layer less to put together.
+  // The pen of the colour scan is an element, moved by a transform, not a line redrawn on a full canvas every frame.
+  const penEl = document.getElementById('pen');
+  let ovEmpty = false, penOn = false;
   function notes({ gridA = 0, levelsA = 0, labelsA = 0, sweep = null, colourPen = 0 } = {}) {
-    g2.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const pen = colourPen > 0.01 && S.colourX > -11.9 && S.colourX < 38.4;
+    if (penEl) {
+      if (pen) {
+        const xr = S.colourX, [sx] = scr(xr, 0), [, py] = scr(xr, groundY(xr));
+        penEl.style.transform = `translate3d(${sx.toFixed(1)}px,0,0)`;
+        penEl.firstElementChild.style.transform = `translate3d(0,${py.toFixed(1)}px,0)`;
+      }
+      if (pen !== penOn) { penOn = pen; penEl.style.opacity = pen ? '1' : '0'; }
+    }
+    const empty = gridA <= 0.01 && (levelsA <= 0.01 || W < 700) && labelsA <= 0.01 && sweep === null && (penEl || !pen);
+    if (empty) {
+      if (!ovEmpty) { ovEmpty = true; g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, overlay.width, overlay.height); overlay.style.visibility = 'hidden'; }
+      return;
+    }
+    if (ovEmpty) { ovEmpty = false; overlay.style.visibility = ''; }
+    g2.setTransform(OV_DPR, 0, 0, OV_DPR, 0, 0);
     g2.clearRect(0, 0, W, H);
-    const ink = a => `rgba(241,238,234,${a})`, mono = w => `${w} ${W < 700 ? 9 : 10}px "IBM Plex Mono", ui-monospace, monospace`;
+    const ink = a => `rgba(59,47,39,${a})`, mono = w => `${w} ${W < 700 ? 9 : 10}px "IBM Plex Mono", ui-monospace, monospace`;
     if (gridA > 0.01) {
       g2.lineWidth = 0.6; g2.strokeStyle = ink(0.5 * gridA); g2.setLineDash([14, 3, 2, 3]);
       for (const [, x] of grid) { const [ax, ay] = scr(x, 8.3), [bx, by] = scr(x, -2.6); g2.beginPath(); g2.moveTo(ax, ay); g2.lineTo(bx, by); g2.stroke(); }
@@ -638,10 +722,11 @@ export function createEngine(canvas, overlay) {
     }
     g2.textAlign = 'left'; g2.textBaseline = 'alphabetic';
     if (levelsA > 0.01 && W >= 700) for (const L of levels) {
-      const [ax, ay] = scr(L.y === 0 ? 31.4 : 19.6, L.y), [bx] = scr(32.0, L.y);
+      const [ax, ay] = scr(L.y === 0 ? 31.4 : 19.6, L.y), bx = Math.min(scr(32.0, L.y)[0], W - 104);   // the level and its name stay on the sheet
       g2.lineWidth = 0.7; g2.strokeStyle = ink(0.55 * levelsA); g2.setLineDash([5, 4]);
-      g2.beginPath(); g2.moveTo(ax, ay); g2.lineTo(bx, ay); g2.stroke(); g2.setLineDash([]);
-      g2.fillStyle = `rgba(255,77,87,${0.95 * levelsA})`;
+      if (bx - ax > 8) { g2.beginPath(); g2.moveTo(ax, ay); g2.lineTo(bx, ay); g2.stroke(); }
+      g2.setLineDash([]);
+      g2.fillStyle = `rgba(27,122,140,${0.95 * levelsA})`;
       g2.beginPath(); g2.moveTo(bx, ay); g2.lineTo(bx - 6, ay - 9); g2.lineTo(bx + 6, ay - 9); g2.closePath(); g2.fill();
       g2.fillStyle = ink(0.95 * levelsA);
       g2.font = mono(600); g2.fillText(L.text, bx + 12, ay - 3);
@@ -666,16 +751,16 @@ export function createEngine(canvas, overlay) {
           if (hs >= 0) { why.push([t, x, y, 'shape ' + solids[hs].name]); continue; }
           why.push([t, x, y, 'placed']);
           taken.push(r);
-          g2.fillStyle = `rgba(12,12,14,${0.94 * labelsA})`;
+          g2.fillStyle = `rgba(243,235,219,${0.94 * labelsA})`;
           g2.beginPath(); g2.rect(r[0] - 1, r[1] + 1, r[2] - r[0] + 2, r[3] - r[1]); g2.fill();
           g2.fillStyle = ink(0.84 * labelsA); g2.fillText(t, sx, sy); break;
         }
       }
       if ('letterSpacing' in g2) g2.letterSpacing = '0px';
     }
-    if (colourPen > 0.01 && S.colourX > -11.9 && S.colourX < 38.4) {
+    if (!penEl && pen) {
       const xr = S.colourX, [sx] = scr(xr, 0), [, py] = scr(xr, groundY(xr));
-      g2.strokeStyle = g2.fillStyle = `rgba(255,77,87,${colourPen})`; g2.lineWidth = 1.5;
+      g2.strokeStyle = g2.fillStyle = `rgba(27,122,140,${colourPen})`; g2.lineWidth = 1.5;
       g2.beginPath(); g2.moveTo(sx, 0); g2.lineTo(sx, H); g2.stroke();
       g2.beginPath(); g2.arc(sx, py, 3.5, 0, Math.PI * 2); g2.fill();
     }
@@ -684,7 +769,7 @@ export function createEngine(canvas, overlay) {
       passes.forEach((xr, i) => {
         if (xr < -11.9 || xr > 38.4) return;
         const a = sweep * [1, 0.45, 0.3][i], [sx] = scr(xr, 0), [, py] = scr(xr, groundY(xr));
-        g2.strokeStyle = g2.fillStyle = `rgba(255,77,87,${a})`; g2.lineWidth = i ? 1 : 1.5;
+        g2.strokeStyle = g2.fillStyle = `rgba(27,122,140,${a})`; g2.lineWidth = i ? 1 : 1.5;
         g2.beginPath(); g2.moveTo(sx, 0); g2.lineTo(sx, H); g2.stroke();
         g2.beginPath(); g2.arc(sx, py, i ? 2.5 : 3.5, 0, Math.PI * 2); g2.fill();
       });
@@ -759,6 +844,7 @@ export function createEngine(canvas, overlay) {
   }
 
   // ---- render, with the optional 3D axonometric inset key in a corner ----
+  let camBoxKey = '';
   function render(key = null) {
     uTime.value = performance.now() * 0.001;
     renderer.setScissorTest(false);
@@ -767,6 +853,13 @@ export function createEngine(canvas, overlay) {
     renderer.render(scene, camera);
     if (key && key.a > 0.01) {
       const { x, y, w, h } = key;           // css px from the top left
+      // the window the camera shows on the cut, as a frame in the key
+      const aspect = W / H, fw = Math.min(14.0, S.frameH * aspect), fh = Math.min(7.5, S.frameH);
+      const x0 = THREE.MathUtils.clamp(S.cx - fw, -2.8, 25.8), x1 = THREE.MathUtils.clamp(S.cx + fw, -2.8, 25.8);
+      const y0 = THREE.MathUtils.clamp(S.cy - fh, -3.0, 12.0), y1 = THREE.MathUtils.clamp(S.cy + fh, -3.0, 12.0);
+      const boxKey = [x0, x1, y0, y1].map(v => v.toFixed(3)).join();
+      if (boxKey !== camBoxKey) { camBoxKey = boxKey; camBoxGeo.setPositions([x0, y0, 0, x1, y0, 0, x1, y0, 0, x1, y1, 0, x1, y1, 0, x0, y1, 0, x0, y1, 0, x0, y0, 0]); }
+      camBox.position.z = S.cut + 0.02;
       keyCam.aspect = w / h; keyCam.updateProjectionMatrix();
       lineMats.forEach(m => m.resolution.set(w, h));
       LINES.ghost.opacity = 0.24 * key.a;
@@ -775,7 +868,7 @@ export function createEngine(canvas, overlay) {
       scene.fog.near = 65; scene.fog.far = 140;
       renderer.setScissorTest(true);
       renderer.setScissor(x, H - y - h, w, h); renderer.setViewport(x, H - y - h, w, h);
-      renderer.setClearColor(0x0c0c0e, 1); renderer.clear();
+      renderer.setClearColor(0xf9f3e7, 1); renderer.clear();
       const saved = [revA.constant, revB.constant, revC.constant];
       revA.constant = revB.constant = revC.constant = 1000;
       renderer.render(scene, keyCam);
@@ -787,16 +880,35 @@ export function createEngine(canvas, overlay) {
     }
   }
 
-  function resize() {
-    W = innerWidth; H = innerHeight;
+  // Returns true when the picture really changed size. The URL bar of a phone sliding away does not count.
+  function resize(force = false) {
+    const w = innerWidth, h = stableH();
+    if (!force && w === W && h === H) return false;
+    W = w; H = h;
+    renderer.setPixelRatio(DPR);
     renderer.setSize(W, H, false);
-    overlay.width = W * DPR; overlay.height = H * DPR;
+    overlay.width = Math.round(W * OV_DPR); overlay.height = Math.round(H * OV_DPR);
+    ovEmpty = false;
     lineMats.forEach(m => m.resolution.set(W, H));
+    shapeCache.key = '';
+    return true;
   }
-  resize();
+  // The governor owns the resolution of the drawing buffer: it starts from a pixel budget for the device and
+  // follows the frame time from there.
+  const gov = governor({ apply: (dpr) => {
+    DPR = dpr; uDpr.value = dpr;
+    renderer.setPixelRatio(DPR);
+    renderer.setSize(W, H, false);
+    onResolution(dpr);
+  } });
+  resize(true);
 
   return {
-    renderer, scene, camera, place, resolve, notes, render, resize, buildSprites, scr,
+    renderer, scene, camera, place, resolve, notes, render, buildSprites, scr,
+    resize() { const changed = resize(); if (changed) { gov.refit(); gov.hold(600); } return changed; },
+    tick(now, active) { gov.frame(now, active); },           // once per animation frame: active says whether this frame draws
+    hold(ms) { gov.hold(ms); },
+    get dpr() { return DPR; }, tier,
     hideTags(tags) { spriteMeshes.forEach(m => { m.visible = !tags.includes(m.userData.tag); }); },
     get W() { return W; }, get H() { return H; }, get ppm() { return ppm; }, get dist() { return dist; }, get frameH() { return frameH; },
     precompile() { renderer.compile(scene, camera); renderer.compile(scene, keyCam); },
