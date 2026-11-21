@@ -15,6 +15,7 @@ import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { pieces, floors, sprites, groundLine, levels, grid, labels, coursing } from './house.js';
 import { drawSprite } from './entourage.js';
+import { tier, low, governor } from './quality.js';
 
 export const PAPER = 0x0c0c0e, INK = 0xf1eeea, ACCENT = 0xe5202e;      // black sheet, white ink, red pen
 
@@ -72,22 +73,43 @@ function matIdFor(p, nx, ny, nz, x, y) {
 
 const LAYER_KEY = 1, LAYER_SPRITES = 2, LAYER_SKY = 3;     // the inset key sees ghosts and the accent plane, the page sees people and sky
 
-export function createEngine(canvas, overlay) {
-  let W = innerWidth, H = innerHeight;
-  const DPR = Math.min(devicePixelRatio, 2);
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(DPR);
-  renderer.setSize(W, H, false);
+// On phones the sun's shadow is read with four taps instead of sixteen: the map is drawn once and never moves,
+// so a bilinear 2x2 is all the softness the edge needs.
+if (low) {
+  THREE.ShaderChunk.shadowmap_pars_fragment = THREE.ShaderChunk.shadowmap_pars_fragment.replace(
+    'shadow = texture2DCompare( shadowMap, shadowCoord.xy, shadowCoord.z );',
+    `vec2 smT = vec2( 1.0 ) / shadowMapSize;
+			vec2 smP = shadowCoord.xy * shadowMapSize - 0.5;
+			vec2 smF = fract( smP );
+			vec2 smB = ( floor( smP ) + 0.5 ) * smT;
+			shadow = mix(
+				mix( texture2DCompare( shadowMap, smB, shadowCoord.z ), texture2DCompare( shadowMap, smB + vec2( smT.x, 0.0 ), shadowCoord.z ), smF.x ),
+				mix( texture2DCompare( shadowMap, smB + vec2( 0.0, smT.y ), shadowCoord.z ), texture2DCompare( shadowMap, smB + smT, shadowCoord.z ), smF.x ),
+				smF.y );`);
+}
+
+export function createEngine(canvas, overlay, onResolution = () => {}) {
+  // The size of the picture is the large viewport: on a phone the URL bar slides in and out while scrolling and
+  // fires resize every time. A probe 100lvh high does not change with it, so nothing is reallocated and nothing stretches.
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;left:0;top:0;width:0;height:100vh;height:100lvh;visibility:hidden;pointer-events:none';
+  document.body.appendChild(probe);
+  const stableH = () => probe.offsetHeight || innerHeight;
+  let W = innerWidth, H = stableH();
+  let DPR = 1;                                              // the drawing buffer, set by the governor below
+  const OV_DPR = Math.min(devicePixelRatio || 1, 2);        // the notes are text: they keep the screen's own sharpness
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: false, powerPreference: 'high-performance' });
   renderer.setClearColor(PAPER, 1);
   renderer.localClippingEnabled = true;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = low ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(PAPER, 10, 40);
   const camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 2000);
   const colourX = { value: -1000 };          // everything left of this x is in colour. The pen of the colour plot
+  const uDpr = { value: 1 };                 // device pixels per css pixel of the drawing buffer, for the hatch
   const uTime = { value: 0 };
   camera.layers.enable(LAYER_SPRITES); camera.layers.enable(LAYER_SKY);
   const keyCam = new THREE.PerspectiveCamera(23, 1.6, 1, 400);
@@ -244,9 +266,20 @@ export function createEngine(canvas, overlay) {
   sun.target.position.set(12, 3, -5);
   sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 45);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(4096, 4096);
-  Object.assign(sun.shadow.camera, { left: -36, right: 36, top: 26, bottom: -26, near: 1, far: 100 });
-  sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+  const SHADOW = tier === 'high' ? 4096 : 2048;              // drawn once: 2048 over 72 m is 3.5 cm a texel
+  sun.shadow.mapSize.set(SHADOW, SHADOW);
+  // The shadow camera is fitted to what can throw a shadow and where it can land: the house, the terrace, and the
+  // ground behind and to the right of them. Twice the texels per metre of a loose box round the whole plot.
+  {
+    sun.updateMatrixWorld(); sun.target.updateMatrixWorld();
+    const sc = sun.shadow.camera;
+    sc.position.copy(sun.position); sc.lookAt(sun.target.position); sc.updateMatrixWorld();
+    const inv = sc.matrixWorld.clone().invert(), v = new THREE.Vector3(), lo = new THREE.Vector3(Infinity, Infinity, Infinity), hi = lo.clone().negate();
+    for (const x of [1.5, 33]) for (const y of [-2.2, 7.4]) for (const z of [-21, 0.6]) { v.set(x, y, z).applyMatrix4(inv); lo.min(v); hi.max(v); }
+    Object.assign(sc, { left: lo.x, right: hi.x, bottom: lo.y, top: hi.y, near: Math.max(0.5, -hi.z - 1), far: -lo.z + 1 });
+    sc.updateProjectionMatrix();
+  }
+  sun.shadow.bias = -0.0004; sun.shadow.normalBias = SHADOW >= 4096 ? 0.03 : 0.045;
   scene.add(hemi, sun, sun.target);
 
   // Warm interior architectural point lights so rooms glow in depth behind the section cut
@@ -255,12 +288,18 @@ export function createEngine(canvas, overlay) {
     pt.position.set(x, y, z);
     scene.add(pt);
   };
-  addWarmLight(5.55, 1.8, -7.1, 1.6, 9.0);      // kitchen island pendants (±0.00m)
-  addWarmLight(9.2, 1.7, -7.45, 1.9, 9.5);      // dining table (±0.00m)
-  addWarmLight(14.9, 3.1, -7.3, 2.4, 13.5);     // the big pendant in the double height (±0.00m)
-  addWarmLight(4.6, 4.5, -7.45, 1.5, 8.5);      // bedroom pendant (+3.10m)
-  addWarmLight(10.0, 4.6, -8.0, 1.5, 8.5);      // the study at the balustrade (+3.10m)
-  addWarmLight(8.3, 4.6, -4.6, 1.6, 9.0);       // the stair under its rooflight
+  if (low) {                                    // three pools of light instead of six: half the work per pixel
+    addWarmLight(7.4, 1.75, -7.3, 3.1, 10.5);     // kitchen and dining (±0.00m)
+    addWarmLight(14.9, 3.1, -7.3, 2.6, 13.5);     // the big pendant in the double height (±0.00m)
+    addWarmLight(7.6, 4.55, -6.9, 3.4, 10.5);     // bedroom, study and the stair under its rooflight (+3.10m)
+  } else {
+    addWarmLight(5.55, 1.8, -7.1, 1.6, 9.0);      // kitchen island pendants (±0.00m)
+    addWarmLight(9.2, 1.7, -7.45, 1.9, 9.5);      // dining table (±0.00m)
+    addWarmLight(14.9, 3.1, -7.3, 2.4, 13.5);     // the big pendant in the double height (±0.00m)
+    addWarmLight(4.6, 4.5, -7.45, 1.5, 8.5);      // bedroom pendant (+3.10m)
+    addWarmLight(10.0, 4.6, -8.0, 1.5, 8.5);      // the study at the balustrade (+3.10m)
+    addWarmLight(8.3, 4.6, -4.6, 1.6, 9.0);       // the stair under its rooflight
+  }
 
   let shadowKey = '';
   withColour(faces);
@@ -337,7 +376,7 @@ export function createEngine(canvas, overlay) {
     const g = groundLine.flat();
     const m = new THREE.ShaderMaterial({
       side: THREE.DoubleSide, clipping: true, clippingPlanes: late,
-      uniforms: { uInk: { value: new THREE.Color(INK) }, uPaper: { value: new THREE.Color(0x101012) }, uG: { value: g }, uDpr: { value: Math.min(devicePixelRatio, 2) },
+      uniforms: { uInk: { value: new THREE.Color(INK) }, uPaper: { value: new THREE.Color(0x101012) }, uG: { value: g }, uDpr: uDpr,
         uSoil: { value: new THREE.Color(0x242428) }, uSoilInk: { value: new THREE.Color(0x8a8884) }, uColourX: colourX },
       vertexShader: `#include <clipping_planes_pars_vertex>
         varying vec2 vXY;
@@ -486,10 +525,13 @@ export function createEngine(canvas, overlay) {
 
   // ---- lids: rebuilt only when the cut enters or leaves a piece, otherwise just moved ----
   const caps = new THREE.Group(); scene.add(caps);
-  let capKey = '';
+  let capKey = '', capZ = NaN;
+  pieces.forEach((p, i) => { p.idx = i; });
   function updateCaps(zc) {
+    if (zc === capZ) return;                     // the cut has not moved: the lids are where they belong
+    capZ = zc;
     const on = pieces.filter(p => p.z0 < zc - 1e-4 && p.z1 > zc + 1e-4);
-    const key = on.map(p => pieces.indexOf(p)).join(',');
+    const key = on.map(p => p.idx).join(',');
     if (key !== capKey) {
       capKey = key;
       caps.children.slice().forEach(o => { caps.remove(o); o.geometry.dispose(); });
@@ -516,14 +558,14 @@ export function createEngine(canvas, overlay) {
 
   // ---- entourage: two drawings of each figure, one for far and one for close ----
   const spriteMeshes = [];
+  const SPRITE_Q = low ? 0.6 : tier === 'mid' ? 0.8 : 1;       // how large the figures are drawn: a phone shows them at a third of a desk's pixels
   function buildSprites(refPxPerM) {
     for (const s of sprites) {
-      const ref = s.type.startsWith('s') || s.type === 'walk' || s.type === 'child' ? 300 : 1100 / s.h;
+      const ref = (s.type.startsWith('s') || s.type === 'walk' || s.type === 'child' ? 300 : s.type === 'plant' ? 600 / s.h : 1100 / s.h) * SPRITE_Q;
       const tex = [1, 3.2].map(k => {
-        const d = drawSprite(s.type, s.h, THREE.MathUtils.clamp(1.15 * ref / (refPxPerM * k), 1.2, 16));
+        const d = drawSprite(s.type, s.h, THREE.MathUtils.clamp(1.15 * ref / (refPxPerM * k), 1.2, 16), SPRITE_Q);
         const t = new THREE.CanvasTexture(d.canvas);
         t.colorSpace = THREE.SRGBColorSpace;
-        t.anisotropy = renderer.capabilities.getMaxAnisotropy();
         t.userData = d;
         renderer.initTexture(t);      // upload now, behind the loader, not the first time the camera comes close
         return t;
@@ -556,8 +598,10 @@ export function createEngine(canvas, overlay) {
   const WHITE = new THREE.Color(0xffffff), GLASS0 = new THREE.Color(0xdfe6ea), GLASS1 = new THREE.Color(0xdfe6ea), WATER_CAP0 = new THREE.Color(0x2a2e34), WATER_CAP1 = new THREE.Color(0x3a4048), WATER0 = new THREE.Color(0x1a1c20), WATER1 = new THREE.Color(0x24272c);
   const GREENS = { tree: new THREE.Color(0xb4b6b4), cypress: new THREE.Color(0x9a9c9a), plant: new THREE.Color(0xc0c2c0) };
   let frameH = 10, dist = 100, ppm = 40;
-  const bands = () => (W < 700 ? [66, 132] : [80, 104]);              // px kept clear for the header and the captions
+  const short = () => W >= 700 && H < 520;                            // a phone held sideways: wide, and very low
+  const bands = () => (W < 700 ? [66, 132] : short() ? [58, 92] : [80, 104]);   // px kept clear for the header and the captions
   function resolve(st) {
+    if (st.short && short()) st = { ...st, ...st.short };              // a state may say how it sits on a low screen
     const aspect = W / H, [x0, y0, x1, y1] = st.rect;
     let fh, at = st.at;
     if (at) fh = Math.max((y1 - y0) / 2, (x1 - x0) / 2 / aspect);
@@ -581,7 +625,9 @@ export function createEngine(canvas, overlay) {
     camera.lookAt(vx, vy, S.cut);
     ppm = H / (2 * frameH);
     camera.setViewOffset(W, H, (cx - vx) * ppm, -(cy - vy) * ppm, W, H);
-    camera.near = Math.max(0.05, dist * 0.6); camera.far = dist + 160;
+    // Everything in front of the cut is clipped away, the sky hangs 50 m behind it: the depth buffer only has to span
+    // that slab. Seen through the 1.6 degree lens from 600 m this is what keeps lids and faces from flickering on a phone.
+    camera.near = Math.max(0.05, dist - 1.0); camera.far = dist + 70;
     camera.updateProjectionMatrix(); camera.updateMatrixWorld();
     scene.fog.near = dist; scene.fog.far = dist + S.fog;
     cutPlane.constant = S.cut;
@@ -589,12 +635,6 @@ export function createEngine(canvas, overlay) {
     revA.constant = ra; revB.constant = rb; revC.constant = rc;
     updateCaps(S.cut);
     redSheet.position.z = S.cut + 0.01; redFrame.position.z = S.cut;
-    // Update the active camera viewport box on the cut plane in the 3D radar key
-    const fw = Math.min(14.0, S.frameH * aspect), fh = Math.min(7.5, S.frameH);
-    const x0 = THREE.MathUtils.clamp(cx - fw, -2.8, 25.8), x1 = THREE.MathUtils.clamp(cx + fw, -2.8, 25.8);
-    const y0 = THREE.MathUtils.clamp(cy - fh, -3.0, 12.0), y1 = THREE.MathUtils.clamp(cy + fh, -3.0, 12.0);
-    camBoxGeo.setPositions([x0, y0, 0, x1, y0, 0, x1, y0, 0, x1, y1, 0, x1, y1, 0, x0, y1, 0, x0, y1, 0, x0, y0, 0]);
-    camBox.position.z = S.cut + 0.02;
 
     colourX.value = S.colourX ?? -1000;
     const t = THREE.MathUtils.clamp((colourX.value + 12) / 50.5, 0, 1);
@@ -614,8 +654,8 @@ export function createEngine(canvas, overlay) {
     }
     const tanHalf = Math.tan(half);
     for (const m of spriteMeshes) {
-      const px = DPR * H / (2 * Math.max(0.5, camera.position.z - m.position.z) * tanHalf);
-      const want = px > m.userData.refPxPerM * DPR * 1.9 ? 1 : 0;
+      const px = H / (2 * Math.max(0.5, camera.position.z - m.position.z) * tanHalf);
+      const want = px > m.userData.refPxPerM * 1.9 ? 1 : 0;
       if (m.material.map !== m.userData.tex[want]) { m.material.map = m.userData.tex[want]; m.material.needsUpdate = false; }
     }
   }
@@ -624,8 +664,28 @@ export function createEngine(canvas, overlay) {
   const g2 = overlay.getContext('2d');
   const P = new THREE.Vector3();
   const scr = (x, y) => { P.set(x, y, S.cut).project(camera); return [(P.x + 1) / 2 * W, (1 - P.y) / 2 * H]; };
+  // The notes sit on a canvas of their own over the picture. It is only touched while there is something to write:
+  // through the walk in the house it stays cleared and hidden, so the phone has one layer less to put together.
+  // The pen of the colour scan is an element, moved by a transform, not a line redrawn on a full canvas every frame.
+  const penEl = document.getElementById('pen');
+  let ovEmpty = false, penOn = false;
   function notes({ gridA = 0, levelsA = 0, labelsA = 0, sweep = null, colourPen = 0 } = {}) {
-    g2.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const pen = colourPen > 0.01 && S.colourX > -11.9 && S.colourX < 38.4;
+    if (penEl) {
+      if (pen) {
+        const xr = S.colourX, [sx] = scr(xr, 0), [, py] = scr(xr, groundY(xr));
+        penEl.style.transform = `translate3d(${sx.toFixed(1)}px,0,0)`;
+        penEl.firstElementChild.style.transform = `translate3d(0,${py.toFixed(1)}px,0)`;
+      }
+      if (pen !== penOn) { penOn = pen; penEl.style.opacity = pen ? '1' : '0'; }
+    }
+    const empty = gridA <= 0.01 && (levelsA <= 0.01 || W < 700) && labelsA <= 0.01 && sweep === null && (penEl || !pen);
+    if (empty) {
+      if (!ovEmpty) { ovEmpty = true; g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, overlay.width, overlay.height); overlay.style.visibility = 'hidden'; }
+      return;
+    }
+    if (ovEmpty) { ovEmpty = false; overlay.style.visibility = ''; }
+    g2.setTransform(OV_DPR, 0, 0, OV_DPR, 0, 0);
     g2.clearRect(0, 0, W, H);
     const ink = a => `rgba(241,238,234,${a})`, mono = w => `${w} ${W < 700 ? 9 : 10}px "IBM Plex Mono", ui-monospace, monospace`;
     if (gridA > 0.01) {
@@ -638,9 +698,10 @@ export function createEngine(canvas, overlay) {
     }
     g2.textAlign = 'left'; g2.textBaseline = 'alphabetic';
     if (levelsA > 0.01 && W >= 700) for (const L of levels) {
-      const [ax, ay] = scr(L.y === 0 ? 31.4 : 19.6, L.y), [bx] = scr(32.0, L.y);
+      const [ax, ay] = scr(L.y === 0 ? 31.4 : 19.6, L.y), bx = Math.min(scr(32.0, L.y)[0], W - 104);   // the level and its name stay on the sheet
       g2.lineWidth = 0.7; g2.strokeStyle = ink(0.55 * levelsA); g2.setLineDash([5, 4]);
-      g2.beginPath(); g2.moveTo(ax, ay); g2.lineTo(bx, ay); g2.stroke(); g2.setLineDash([]);
+      if (bx - ax > 8) { g2.beginPath(); g2.moveTo(ax, ay); g2.lineTo(bx, ay); g2.stroke(); }
+      g2.setLineDash([]);
       g2.fillStyle = `rgba(255,77,87,${0.95 * levelsA})`;
       g2.beginPath(); g2.moveTo(bx, ay); g2.lineTo(bx - 6, ay - 9); g2.lineTo(bx + 6, ay - 9); g2.closePath(); g2.fill();
       g2.fillStyle = ink(0.95 * levelsA);
@@ -673,7 +734,7 @@ export function createEngine(canvas, overlay) {
       }
       if ('letterSpacing' in g2) g2.letterSpacing = '0px';
     }
-    if (colourPen > 0.01 && S.colourX > -11.9 && S.colourX < 38.4) {
+    if (!penEl && pen) {
       const xr = S.colourX, [sx] = scr(xr, 0), [, py] = scr(xr, groundY(xr));
       g2.strokeStyle = g2.fillStyle = `rgba(255,77,87,${colourPen})`; g2.lineWidth = 1.5;
       g2.beginPath(); g2.moveTo(sx, 0); g2.lineTo(sx, H); g2.stroke();
@@ -759,6 +820,7 @@ export function createEngine(canvas, overlay) {
   }
 
   // ---- render, with the optional 3D axonometric inset key in a corner ----
+  let camBoxKey = '';
   function render(key = null) {
     uTime.value = performance.now() * 0.001;
     renderer.setScissorTest(false);
@@ -767,6 +829,13 @@ export function createEngine(canvas, overlay) {
     renderer.render(scene, camera);
     if (key && key.a > 0.01) {
       const { x, y, w, h } = key;           // css px from the top left
+      // the window the camera shows on the cut, as a frame in the key
+      const aspect = W / H, fw = Math.min(14.0, S.frameH * aspect), fh = Math.min(7.5, S.frameH);
+      const x0 = THREE.MathUtils.clamp(S.cx - fw, -2.8, 25.8), x1 = THREE.MathUtils.clamp(S.cx + fw, -2.8, 25.8);
+      const y0 = THREE.MathUtils.clamp(S.cy - fh, -3.0, 12.0), y1 = THREE.MathUtils.clamp(S.cy + fh, -3.0, 12.0);
+      const boxKey = [x0, x1, y0, y1].map(v => v.toFixed(3)).join();
+      if (boxKey !== camBoxKey) { camBoxKey = boxKey; camBoxGeo.setPositions([x0, y0, 0, x1, y0, 0, x1, y0, 0, x1, y1, 0, x1, y1, 0, x0, y1, 0, x0, y1, 0, x0, y0, 0]); }
+      camBox.position.z = S.cut + 0.02;
       keyCam.aspect = w / h; keyCam.updateProjectionMatrix();
       lineMats.forEach(m => m.resolution.set(w, h));
       LINES.ghost.opacity = 0.24 * key.a;
@@ -787,16 +856,35 @@ export function createEngine(canvas, overlay) {
     }
   }
 
-  function resize() {
-    W = innerWidth; H = innerHeight;
+  // Returns true when the picture really changed size. The URL bar of a phone sliding away does not count.
+  function resize(force = false) {
+    const w = innerWidth, h = stableH();
+    if (!force && w === W && h === H) return false;
+    W = w; H = h;
+    renderer.setPixelRatio(DPR);
     renderer.setSize(W, H, false);
-    overlay.width = W * DPR; overlay.height = H * DPR;
+    overlay.width = Math.round(W * OV_DPR); overlay.height = Math.round(H * OV_DPR);
+    ovEmpty = false;
     lineMats.forEach(m => m.resolution.set(W, H));
+    shapeCache.key = '';
+    return true;
   }
-  resize();
+  // The governor owns the resolution of the drawing buffer: it starts from a pixel budget for the device and
+  // follows the frame time from there.
+  const gov = governor({ apply: (dpr) => {
+    DPR = dpr; uDpr.value = dpr;
+    renderer.setPixelRatio(DPR);
+    renderer.setSize(W, H, false);
+    onResolution(dpr);
+  } });
+  resize(true);
 
   return {
-    renderer, scene, camera, place, resolve, notes, render, resize, buildSprites, scr,
+    renderer, scene, camera, place, resolve, notes, render, buildSprites, scr,
+    resize() { const changed = resize(); if (changed) { gov.refit(); gov.hold(600); } return changed; },
+    tick(now, active) { gov.frame(now, active); },           // once per animation frame: active says whether this frame draws
+    hold(ms) { gov.hold(ms); },
+    get dpr() { return DPR; }, tier,
     hideTags(tags) { spriteMeshes.forEach(m => { m.visible = !tags.includes(m.userData.tag); }); },
     get W() { return W; }, get H() { return H; }, get ppm() { return ppm; }, get dist() { return dist; }, get frameH() { return frameH; },
     precompile() { renderer.compile(scene, camera); renderer.compile(scene, keyCam); },

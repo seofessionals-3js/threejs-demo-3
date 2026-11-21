@@ -28,9 +28,19 @@ Casa Dos: 14 × 10 m, zwei Ebenen unter einem flachen Dach. Unten Küche mit Ter
 
 ## Dateien
 
-`index.html`, `page.js` (Scrollplan, Kamerazustände), `engine.js` (Tusche, Deckel, Farbe, Licht), `house.js` (das Haus als Schnittprofile), `entourage.js` (Figuren und Bäume). Insgesamt etwa 122 KB.
+`index.html`, `page.js` (Scrollplan, Kamerazustände), `engine.js` (Tusche, Deckel, Farbe, Licht), `house.js` (das Haus als Schnittprofile), `entourage.js` (Figuren und Bäume), `quality.js` (Geräteklasse und Auflösung). Insgesamt etwa 140 KB.
 
-`&skip` überspringt den Loader. `&closing` springt zum Abschlussbereich.
+`&skip` überspringt den Loader. `&closing` springt zum Abschlussbereich. `&p=0.4` friert die Seite bei 40 % des Wegs ein.
+
+## Läuft auch auf dem Handy
+
+- **Die Auflösung folgt dem Gerät.** `quality.js` teilt Geräte in drei Klassen ein und gibt jeder ein Pixelbudget statt einer festen Obergrenze. Ein Regler misst die Bildzeit und nimmt die Auflösung in kleinen Schritten zurück, wenn Bilder länger als etwa 23 ms brauchen, und vorsichtig wieder hoch, wenn Luft ist. `&q=low`, `&q=mid` oder `&q=high` erzwingt eine Klasse, `&dpr=1.5` legt die Auflösung fest und schaltet den Regler ab.
+- **Ruhe kostet nichts.** Gezeichnet wird nur, wenn sich etwas ändert. Steht der Scroll, steht auch die Grafikkarte, und solange der Abschlussbereich das Bild verdeckt oder die Seite im Hintergrund liegt, wird gar nicht gezeichnet.
+- **Die Seite schreibt nur, was sich ändert.** HUD, Bildunterschriften und Karten werden nicht mehr in jedem Bild neu gesetzt. Kamerazustände, Deckel und Layoutmaße werden einmal berechnet und erst bei einer neuen Fenstergröße wieder.
+- **Die Beschriftung hat ihre eigene Ebene, aber nur wenn sie etwas zeigt.** Im Rundgang ist die 2D-Ebene geleert und ausgeblendet. Die Stiftlinie des Scans ist ein Element, das per Transform wandert.
+- **Der Schatten wird einmal gezeichnet.** Die Schattenkamera sitzt eng um Haus und Terrasse, auf dem Handy ist die Schattenkarte 2048 statt 4096 Pixel groß und wird mit vier statt sechzehn Zugriffen gelesen.
+- **Das Bild ist so hoch wie das große Sichtfenster** (`100lvh`). Wenn die Adressleiste des Handys beim Scrollen verschwindet, wird nichts neu angelegt und nichts verzerrt.
+- **Die Tiefe reicht nur von der Schnittebene bis zum Himmel dahinter.** Durch das 1,6°-Objektiv aus 600 m Entfernung bleiben so auch auf dem Handy Deckel und Flächen ruhig.
 
 ## Lokal starten
 

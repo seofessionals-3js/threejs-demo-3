@@ -79,7 +79,10 @@ const X0 = -0.6, X1 = 0.75, Y0 = -0.25, Y1 = 1.85;     // the frame every figure
 
 // Draws a sprite and says how big it is in the world.
 // o is the outline in canvas pixels, chosen by the caller so it lands near one screen pixel.
-export function drawSprite(type, h, outlinePx) {
+// q scales the canvas itself: a phone draws its figures smaller than a desk does.
+let Q = 1;
+export function drawSprite(type, h, outlinePx, q = 1) {
+  Q = q;
   if (POSES[type]) return person(type, h, outlinePx);
   if (type === 'cypress') return cypress(h, outlinePx);
   if (type === 'plant') return plant(h, outlinePx);
@@ -87,7 +90,7 @@ export function drawSprite(type, h, outlinePx) {
 }
 
 function person(type, h, o) {
-  const s = h / 1.75, ppm = 300;
+  const s = h / 1.75, ppm = 300 * Q;
   const c = document.createElement('canvas');
   c.width = Math.round((X1 - X0) * ppm); c.height = Math.round((Y1 - Y0) * ppm);
   const g = c.getContext('2d');
@@ -110,6 +113,7 @@ function person(type, h, o) {
 }
 
 function frame(wm, hm, maxPx = 1100) {
+  maxPx *= Q;
   const ppm = Math.min(maxPx / hm, maxPx / wm);
   const c = document.createElement('canvas');
   c.width = Math.round(wm * ppm); c.height = Math.round(hm * ppm);
