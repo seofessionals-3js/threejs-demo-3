@@ -5,7 +5,7 @@
 // so limbs join the body without a seam. Limbs on the far side of the body are drawn first,
 // on their own, so a step forward still shows where one leg crosses the other.
 
-const INK = '#f1eeea', FILL = '#101012';      // white ink figures cut out of the black sheet
+const INK = '#3b2f27', FILL = '#f6efe0';      // pencil figures, the body left as the paper (the greens come from the engine)
 
 // Poses in metres for a 1.75 m person, feet at y = 0. cap: [x0, y0, x1, y1, width], poly: [[x, y], ...]
 const POSES = {
@@ -135,7 +135,7 @@ function tree(h, o) {
   blobs.push([0, cy, R * 0.6]);
   const trunk = [[0, 0, 0, h * 0.5, h * 0.05], [0, h * 0.4, -h * 0.13, h * 0.6, h * 0.028], [0, h * 0.46, h * 0.12, h * 0.64, h * 0.026]];
   const lit = g.createLinearGradient(-R * 1.2, 0, R * 1.2, 0);
-  lit.addColorStop(0, '#26262a'); lit.addColorStop(1, '#101012');          // the crown is lit from the left, where the sun is
+  lit.addColorStop(0, '#fffaf0'); lit.addColorStop(1, '#d9ccb2');          // the crown is lit from the left, where the sun is
   const draw = (colour, grow) => {
     g.fillStyle = g.strokeStyle = colour === FILL ? lit : colour;
     for (const [a, b, cc, dd, w] of trunk) { g.lineWidth = w + 2 * grow; g.beginPath(); g.moveTo(a, b); g.lineTo(cc, dd); g.stroke(); }
@@ -143,7 +143,7 @@ function tree(h, o) {
   };
   draw(INK, d); draw(FILL, 0);
   // a few branches seen through the crown, lighter than the outline
-  g.strokeStyle = 'rgba(241,238,234,0.42)'; g.lineWidth = d * 0.9;
+  g.strokeStyle = 'rgba(59,47,39,0.4)'; g.lineWidth = d * 0.9;
   for (const [a, b, cc, dd] of [[0, h * 0.48, -h * 0.16, h * 0.74], [0, h * 0.52, h * 0.15, h * 0.76], [0, h * 0.5, 0.01 * h, h * 0.84], [-h * 0.07, h * 0.6, -h * 0.22, h * 0.66], [h * 0.06, h * 0.6, h * 0.21, h * 0.62]]) {
     g.beginPath(); g.moveTo(a, b); g.quadraticCurveTo((a + cc) / 2 + h * 0.02, (b + dd) / 2, cc, dd); g.stroke();
   }
@@ -165,11 +165,11 @@ function cypress(h, o) {
   g.lineWidth = h * 0.024 + 2 * d; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, h * 0.1); g.stroke();
   path(); g.fill(); g.lineWidth = 2 * d; g.stroke();
   const lit = g.createLinearGradient(-h * 0.12, 0, h * 0.12, 0);
-  lit.addColorStop(0, '#26262a'); lit.addColorStop(1, '#101012');
+  lit.addColorStop(0, '#fffaf0'); lit.addColorStop(1, '#d9ccb2');
   g.fillStyle = g.strokeStyle = lit;
   g.lineWidth = h * 0.024; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, h * 0.1); g.stroke();
   path(); g.fill();
-  g.strokeStyle = 'rgba(241,238,234,0.35)'; g.lineWidth = d * 0.9;
+  g.strokeStyle = 'rgba(59,47,39,0.32)'; g.lineWidth = d * 0.9;
   for (const k of [-0.05, -0.02, 0.025, 0.055]) {
     g.beginPath(); g.moveTo(k * h, h * 0.16); g.quadraticCurveTo(k * h * 1.3, h * 0.5, k * h * 0.4, h * 0.86); g.stroke();
   }

@@ -43,7 +43,7 @@ export const groundLine = [[-30, 0], [XW, 0], [XW + 0.01, -0.35], [XE, -0.35], [
 // strip footings under the two long walls
 cut(R(XW - 0.25, -0.95, XW + 0.55, -0.35), D0, D1, { mat: 'stone' });
 cut(R(XE - 0.7, -0.95, XE + 0.1, -0.35), D0, D1, { mat: 'stone' });
-// the street wall in dark brick, with the door in front of the stair
+// the street wall in marès stone, with the door in front of the stair
 cut(R(XW, 2.3, XW + 0.3, 5.95), D0, D1, { mat: 'stone' });
 cut(R(XW, 0, XW + 0.3, 2.3), D0, DOOR[0], { mat: 'stone' });
 cut(R(XW, 0, XW + 0.3, 2.3), DOOR[1], D1, { mat: 'stone' });
@@ -221,8 +221,8 @@ furn([[17.05, L0 + 0.115], [16.3, L0 + 0.115], [16.25, L0 + 0.435], [16.9, L0 + 
 as('oak', () => { furn(R(16.85, L0 + 0.015, 16.9, L0 + 0.115), -8.25, -8.2); furn(R(16.35, L0 + 0.015, 16.4, L0 + 0.115), -8.25, -8.2); });
 furn(R(14.3, 3.3, 15.5, 3.36), -7.9, -6.7, { mat: 'brass' });   // the big pendant in the double height
 furn(R(14.89, 3.36, 14.91, 5.95), -7.31, -7.29, { mat: 'metal' });
-as('oak', () => {
-  furn(R(11.7, L0, 17.4, L0 + 0.04), -9.7, -9.35);            // bookshelf on the back wall, under the high window
+as('smoked', () => {
+  furn(R(11.7, L0, 17.4, L0 + 0.04), -9.7, -9.35);            // the library wall in smoked oak, under the high window
   for (let i = 0; i <= 5; i++) furn(R(11.7, 0.5 + i * 0.5, 17.4, 0.53 + i * 0.5), -9.7, -9.35);
   for (const sx of [11.7, 13.6, 15.5, 17.36]) furn(R(sx, L0, sx + 0.04, 3.03), -9.7, -9.35);
   for (let i = 0; i < 5; i++) books(11.8, 17.3, 0.53 + i * 0.5, -9.7, -9.42);
@@ -245,7 +245,7 @@ chair(18.85, L0, -8.2, 1, 'teak'); chair(18.85, L0, -7.4, 1, 'teak'); chair(21.3
 lounger(22.2, L0, -6.6, -5.9, 1);
 furn(R(18.6, L0, 19.4, L0 + 0.55), -5.95, -5.45, { mat: 'terracotta' });   // a planter by the glass
 
-// ---------------------------------------------------------------- coursing on the brick of the south front
+// ---------------------------------------------------------------- coursing of the marès stone on the south front
 export const coursing = [];
 function course(x0, y0, x1, y1, holes) {
   const h = 0.28, z = D1 + 0.004;

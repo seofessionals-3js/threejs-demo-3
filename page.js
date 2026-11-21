@@ -57,7 +57,7 @@ const PLAN = {
       [630, 795, 'Hinunter zu Küche und Esstisch.'], [810, 975, 'Hinauf zur Schlafebene.'], [990, 1155, 'Hinüber in den 5,95 m hohen Wohnraum.'],
       [1170, 1325, 'Hinaus auf die Terrasse und zum Pool.'], [1340, 1445, 'Zurück zur Schnittebene 1:100.'], [1450, 1700, 'Derselbe Schnitt, in Material und Licht gerendert.']],
     rooms: [[470, 615, '01 // SCHNITT A–A · TREPPENACHSE', 'Die Treppe', 'Ein gerader Lauf · 16 Steigungen à 194 mm · oben ein Oberlicht'],
-      [660, 795, '02 // EBENE ±0.00M · STRASSENSEITE', 'Küche & Essen', 'Terrazzo-Insel · schwarze Fronten · Esstisch für vier unter der Decke'],
+      [660, 795, '02 // EBENE ±0.00M · STRASSENSEITE', 'Küche & Essen', 'Terrazzo-Insel · olivgrüne Fronten · Esstisch für vier unter der Decke'],
       [840, 975, '03 // EBENE +3.10M · OBERGESCHOSS', 'Schlafen & Arbeiten', 'Die Treppe endet hier · Bett an der Straßenwand · Schreibtisch an der Brüstung'],
       [1020, 1155, '04 // EBENE ±0.00M · ZWEIGESCHOSSIG', 'Der Wohnraum', '5,95 m hoch · Bibliothekswand aus Räuchereiche · raumhohes Glas zum Garten'],
       [1200, 1325, '05 // EBENE ±0.00M · TERRASSE', 'Terrasse & Pool', 'Sechs Meter Wasser im Rasen · dahinter fällt der Garten ab']],

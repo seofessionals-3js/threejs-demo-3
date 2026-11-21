@@ -1,6 +1,6 @@
 # three.js Demo 3
 
-Ein flacher Schnitt 1:100 durch ein Haus auf zwei Ebenen plottet sich selbst, weiß auf einem schwarzen Blatt. Beim Scrollen öffnet sich das Objektiv, während der Schnitt exakt seine Größe behält, sodass die Räume dahinter in eine Schnittperspektive zurückweichen. Ein Scan verwandelt die Tusche in Material und Licht, dann besucht die Kamera das Haus Raum für Raum, immer mit Blick auf den Schnitt, und endet beim Schnitt in Material und Licht.
+Ein flacher Schnitt 1:100 durch ein Haus auf zwei Ebenen zeichnet sich selbst, als Aquarell mit Bleistift auf Bütten. Beim Scrollen öffnet sich das Objektiv, während der Schnitt exakt seine Größe behält, sodass die Räume dahinter in eine Schnittperspektive zurückweichen. Ein Scan verwandelt die Zeichnung in Material und Licht, dann besucht die Kamera das Haus Raum für Raum, immer mit Blick auf den Schnitt, und endet beim Schnitt in Material und Licht.
 
 [**Live ansehen**](https://seofessionals-3js.github.io/threejs-demo-3/?dir=a) · [**Startprompt**](PROMPT.md) · [**Alle Demos**](https://seofessionals-3js.github.io/threejs-demos/)
 
@@ -12,19 +12,25 @@ Casa Dos: 14 × 10 m, zwei Ebenen unter einem flachen Dach. Unten Küche mit Ter
 
 ## So funktioniert es
 
-- **Eine Schnittebene.** Das Haus wird von einer senkrechten Ebene durch die Treppe geschnitten, und jeder Körper, den sie trifft, bekommt einen weißen Deckel. Frontal durch ein 1,6°-Objektiv aus etwa 1 km Entfernung gesehen, ist das der Schnitt.
+- **Eine Schnittebene.** Das Haus wird von einer senkrechten Ebene durch die Treppe geschnitten, und jeder Körper, den sie trifft, bekommt einen Deckel in rosa Poché. Frontal durch ein 1,6°-Objektiv aus etwa 1 km Entfernung gesehen, ist das der Schnitt.
 - **Der Schnitt behält seine Größe.** Der Kameraabstand ist `Bildhöhe / tan(Objektiv / 2)`, sodass sich das Objektiv von 1,6° auf 64° öffnen kann, ohne dass sich der Ausschnitt am Schnitt ändert. Die Kamera dreht sich nie.
-- **Tusche und Material in einem Shader.** Jeder Vertex trägt einen Blattton und eine Materialfarbe, alle in Schwarz, Weiß, Grau und Rot. `withColour()` in `engine.js` beleuchtet die Materialfarbe mit prozeduralen Texturen und mischt sie hinter der Scan-Linie ein.
-- **Die Beschriftungen** (Achsblasen, Höhen, Raumnamen, Stiftlinien) werden auf einem 2D-Canvas über die Szene gezeichnet.
+- **Zeichnung und Material in einem Shader.** Jeder Vertex trägt einen Blattton und eine Materialfarbe, die Zeichnung in Papier, Sepia und Rosa, das Haus in den Farben Mallorcas. `withColour()` in `engine.js` beleuchtet die Materialfarbe mit prozeduralen Texturen und mischt sie hinter der Scan-Linie ein.
+- **Die Beschriftungen** (Achsblasen, Höhen, Raumnamen, Stiftlinien in Meerestürkis) werden auf einem 2D-Canvas über die Szene gezeichnet.
 - Ein kleiner 3D-Übersichtsplan in der Ecke zeigt dasselbe Haus von oben und markiert, wohin die Kamera blickt.
 
 ## Farben
 
+Das Medium ist ein Schnitt im Stil der Beaux-Arts: Aquarell und Bleistift auf warmem Bütten, die Schnittflächen als rosa Poché angelegt. Genau ein Akzent, das Meerestürkis, zeichnet die Stiftlinie des Scans, die Höhenmarken und die Links. Kein Rot.
+
 | | Farbe | Verwendung |
 |---|---|---|
-| Blatt | `#0c0c0e` | Hintergrund, Himmel |
-| Tusche | `#f1eeea` | Linien, Schnittflächen, Schrift |
-| Rot | `#e5202e` | Stiftlinien, Scan, Akzente im Haus |
+| Papier | `#f3ebdb` (hell `#f9f3e7`, tief `#e9dfca`) | Blatt, Seitenhintergrund |
+| Sepia | `#3b2f27`, gedämpft `#84776a` | Bleistiftlinien, Schrift |
+| Poché | `#cf7d68`, tief `#b5604c` | Schnittflächen als Lasur |
+| Sienna | `#a8734f` | Erdschraffur |
+| Meerestürkis | `#1b7a8c`, hell `#3aa3b0`, Text `#17667a` | Scan, Stiftlinie, Links |
+
+Nach dem Scan trägt das Haus nur, was in Deià gebaut wird: Marès-Stein `#dcc7a0`, Kalkputz `#f5f0e6`, Terrakotta `#c0694a`, Kiefer `#b88a57`, geräucherte Eiche `#6b4f3a` (Bibliothekswand), Terrazzo `#d8d0c2`, Leinen `#e6dccb`, Olivgrün `#7d8a5c`, Pinienkrone `#5f7550`, Pool `#58a6ae`, Himmel als helle Lasur `#cfe2e6`. Die Buchrücken nehmen nur Terrakotta, Olivgrün, `#d9b46a`, `#3e5c76` und Leinen. Das Licht ist weiches Tageslicht mit warmem Boden- und kühlem Himmelsanteil.
 
 ## Dateien
 

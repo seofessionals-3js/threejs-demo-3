@@ -10,12 +10,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* black sheet, white ink, red pen */
-    --paper: #0c0c0e;
-    --ink: #f1eeea;
-    --mute: #96938f;
-    --accent: #e5202e;
-    --surface: rgba(20, 20, 23, 0.92);
+    /* watercolour paper, sepia pencil, rose poché, one sea-teal pen */
+    --paper: #f3ebdb;
+    --paper-hi: #f9f3e7;
+    --paper-lo: #e9dfca;
+    --ink: #3b2f27;
+    --mute: #84776a;
+    --mute-ink: #6a5d50;              /* the mute tone for small text: 4.5:1 on the paper */
+    --poche: #cf7d68;
+    --poche-deep: #b5604c;
+    --accent: #1b7a8c;
+    --accent-hi: #3aa3b0;
+    --accent-ink: #17667a;            /* small accent text on paper */
+    --surface: rgba(249, 243, 231, 0.94);
     --mono: 'IBM Plex Mono', ui-monospace, monospace;
     --display: 'Chakra Petch', sans-serif;
     --side: 28px;
@@ -27,15 +34,15 @@
   canvas { position: fixed; left: 0; top: 0; width: 100%; height: 100vh; height: 100lvh; display: block; }
   #ov { pointer-events: none; }
   /* the pen of the colour scan: one line moved by a transform */
-  #pen { position: fixed; left: 0; top: 0; width: 1.5px; height: 100vh; height: 100lvh; margin-left: -0.75px; background: #ff4d57; opacity: 0; pointer-events: none; z-index: 1; will-change: transform; }
-  #pen i { position: absolute; left: 50%; top: 0; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #ff4d57; will-change: transform; }
+  #pen { position: fixed; left: 0; top: 0; width: 1.5px; height: 100vh; height: 100lvh; margin-left: -0.75px; background: var(--accent); opacity: 0; pointer-events: none; z-index: 1; will-change: transform; }
+  #pen i { position: absolute; left: 50%; top: 0; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--accent); will-change: transform; }
   .track { height: 620vh; }
-  .grain { position: fixed; inset: 0; pointer-events: none; opacity: 0.14; mix-blend-mode: screen; z-index: 1;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.42 0 0 0 0 0.37 0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  .grain { position: fixed; inset: 0; pointer-events: none; opacity: 0.2; mix-blend-mode: multiply; z-index: 1;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.62 0 0 0 0 0.52 0 0 0 0 0.40 0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
 
   /* Viewport CAD registration brackets */
   #cad-hud { position: fixed; inset: 12px; pointer-events: none; z-index: 4; }
-  #cad-hud .ch-c { position: absolute; width: 14px; height: 14px; border-color: rgba(241, 238, 234, 0.45); border-style: solid; }
+  #cad-hud .ch-c { position: absolute; width: 14px; height: 14px; border-color: rgba(59, 47, 39, 0.45); border-style: solid; }
   #cad-hud .tl { left: 0; top: 0; border-width: 1.5px 0 0 1.5px; }
   #cad-hud .tr { right: 0; top: 0; border-width: 1.5px 1.5px 0 0; }
   #cad-hud .bl { left: 0; bottom: 0; border-width: 0 0 1.5px 1.5px; }
@@ -43,12 +50,12 @@
 
   /* text gets its own layer: soft paper bands so the drawing never runs through the header or the captions */
   .band { position: fixed; left: 0; right: 0; z-index: 1; pointer-events: none; opacity: 0; transition: opacity 0.8s; }
-  .band.top { top: 0; height: 78px; background: linear-gradient(var(--paper) 62px, rgba(12,12,14,0)); z-index: 4; }
-  .band.bot { bottom: 0; height: 62px; background: linear-gradient(rgba(12,12,14,0), var(--paper) 20px); }
+  .band.top { top: 0; height: 78px; background: linear-gradient(var(--paper) 62px, rgba(243,235,219,0)); z-index: 4; }
+  .band.bot { bottom: 0; height: 62px; background: linear-gradient(rgba(243,235,219,0), var(--paper) 20px); }
   .words-in .band { opacity: 1; }
   .words-in .band.bot { opacity: calc(1 - var(--closing, 0)); }
 
-  .scale { right: var(--side); bottom: 100px; font-size: 9px; opacity: 0; background: var(--paper); padding: 6px 8px 4px; border: 1px solid rgba(241,238,234,0.22); }
+  .scale { right: var(--side); bottom: 100px; font-size: 9px; opacity: 0; background: var(--paper); padding: 6px 8px 4px; border: 1px solid rgba(59,47,39,0.22); }
   .scale i { display: flex; margin-bottom: 4px; }
   .scale i s { display: block; width: var(--m, 38px); height: 4px; border: 1px solid var(--ink); box-sizing: border-box; }
   .scale i s:first-child { width: var(--m, 38px); }
@@ -65,14 +72,14 @@
     font: 700 14px/1 var(--display); letter-spacing: 0.18em; text-transform: uppercase;
     background: var(--ink); color: var(--paper); padding: 8px 13px;
   }
-  .mark::before { content: '[ '; color: var(--accent); }
-  .mark::after { content: ' // SEC.01 ]'; color: var(--accent); font-weight: 500; font-size: 11px; }
+  .mark::before { content: '[ '; color: var(--accent-hi); }
+  .mark::after { content: ' // SEC.01 ]'; color: var(--accent-hi); font-weight: 500; font-size: 11px; }
   .mark span { display: none; }
   nav { display: flex; gap: 22px; align-items: center; font-size: 10.5px; }
   nav a { color: var(--ink); text-decoration: none; font-weight: 500; }
   .btn {
     border: 1.5px solid var(--ink); border-radius: 0; padding: 8px 14px;
-    background: rgba(12, 12, 14, 0.94); font-weight: 600; letter-spacing: 0.12em;
+    background: rgba(243, 235, 219, 0.94); font-weight: 600; letter-spacing: 0.12em;
   }
   .btn:hover { background: var(--ink); color: var(--paper); }
   .menu { display: none; }
@@ -80,30 +87,30 @@
   .dirs {
     left: 50%; top: 20px; transform: translateX(-50%); display: flex; gap: 0;
     border: 1.5px solid var(--ink); border-radius: 0; overflow: hidden;
-    font-size: 10px; background: rgba(12, 12, 14, 0.92); z-index: 5;
+    font-size: 10px; background: rgba(243, 235, 219, 0.92); z-index: 5;
   }
   .dirs a { color: var(--ink); text-decoration: none; padding: 7px 13px; white-space: nowrap; font-weight: 500; }
   .dirs a + a { border-left: 1px solid var(--ink); }
   .dirs i { font-style: normal; opacity: 0.72; }
   .dirs a.on { background: var(--ink); color: var(--paper); }
-  .dirs a.on i { color: var(--accent); opacity: 1; }
+  .dirs a.on i { color: var(--accent-hi); opacity: 1; }
 
   .hero { left: var(--side); top: 88px; width: 560px; pointer-events: none; visibility: hidden; }
   .words-in .hero { visibility: visible; }
-  .hero .kicker { font-size: 10.5px; color: var(--mute); font-weight: 500; }
+  .hero .kicker { font-size: 10.5px; color: var(--mute-ink); font-weight: 500; }
   .hero h1 {
     margin: 12px 0 16px; font: 600 60px/0.96 var(--display);
     letter-spacing: -0.01em; text-transform: uppercase;
   }
   .hero h1 em {
-    font-style: normal; color: var(--accent);
-    background: rgba(229, 32, 46, 0.1); padding: 0 8px; border-left: 3px solid var(--accent);
+    font-style: normal; color: var(--accent-ink);
+    background: rgba(27, 122, 140, 0.1); padding: 0 8px; border-left: 3px solid var(--accent);
   }
   .hero p {
     margin: 0; max-width: 340px; font: 500 10.5px/1.6 var(--mono);
     letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink);
   }
-  .hero p > span { background: rgba(12, 12, 14, 0.86); box-shadow: 0 0 0 5px rgba(12, 12, 14, 0.86); }      /* a tree or a grid line may stand behind it */
+  .hero p > span { background: rgba(243, 235, 219, 0.86); box-shadow: 0 0 0 5px rgba(243, 235, 219, 0.86); }      /* a tree or a grid line may stand behind it */
   /* the words arrive line by line, each sliding up out of its own mask */
   .line { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
   .line > span { display: inline-block; transform: translateY(125%); opacity: 0; transition: transform 0.9s cubic-bezier(0.2, 0.7, 0.1, 1), opacity 0.35s; }
@@ -120,23 +127,23 @@
   }
   .block div { padding: 8px 12px; border-left: 1px solid var(--ink); }
   .block div:first-child { border-left: 0; }
-  .block b { display: block; font-weight: 500; color: var(--accent); font-size: 8.5px; margin-bottom: 2px; }
+  .block b { display: block; font-weight: 500; color: var(--accent-ink); font-size: 8.5px; margin-bottom: 2px; }
   .built .block { opacity: 1; }
 
   .hint {
     left: 50%; bottom: 26px; transform: translateX(-50%);
     font: 500 10px var(--mono); letter-spacing: 0.2em; text-transform: uppercase;
-    background: rgba(12, 12, 14, 0.9); padding: 5px 10px; border: 1px solid rgba(241, 238, 234, 0.25);
+    background: rgba(243, 235, 219, 0.9); padding: 5px 10px; border: 1px solid rgba(59, 47, 39, 0.25);
     opacity: 0; transition: opacity 0.6s 0.4s; white-space: nowrap;
   }
   .built .hint { opacity: 1; }
 
   #hud {
     left: var(--side); bottom: 26px; font: 500 10px var(--mono); letter-spacing: 0.14em;
-    text-transform: uppercase; background: var(--surface); color: var(--ink); border: 1px solid rgba(241, 238, 234, 0.2);
+    text-transform: uppercase; background: var(--surface); color: var(--ink); border: 1px solid rgba(59, 47, 39, 0.2);
     padding: 7px 13px; opacity: 0; transition: opacity 0.6s; white-space: nowrap;
   }
-  #hud b { color: #ff4d57; font-weight: 600; }
+  #hud b { color: var(--accent-ink); font-weight: 600; }
   .built #hud { opacity: 1; }
   header, .dirs { opacity: 0; transition: opacity 0.7s 0.2s; }
   .words-in header, .words-in .dirs { opacity: 1; }
@@ -144,7 +151,7 @@
   #caption {
     left: var(--side); bottom: 62px; font: 600 19px/1.15 var(--display);
     text-transform: uppercase; letter-spacing: 0.02em; max-width: 520px;
-    background: rgba(12, 12, 14, 0.82); padding: 7px 11px; margin: -7px -11px;      /* the white cut may lie behind it */
+    background: rgba(243, 235, 219, 0.82); padding: 7px 11px; margin: -7px -11px;      /* the white cut may lie behind it */
     opacity: 0; transform: translateY(10px);
     transition: opacity 0.5s, transform 0.6s cubic-bezier(0.2, 0.7, 0.1, 1);
     pointer-events: none;
@@ -155,16 +162,16 @@
   #room {
     left: var(--side); top: 88px; max-width: 410px;
     padding: 14px 18px 16px;
-    background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(241, 238, 234, 0.07);
+    background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(59, 47, 39, 0.07);
     border-left: 3px solid var(--accent); border-radius: 0;
     opacity: 0; transform: translateY(8px);
     transition: opacity 0.45s, transform 0.6s cubic-bezier(0.2, 0.7, 0.1, 1);
     pointer-events: none;
   }
   #room.show { opacity: 1; transform: none; }
-  #room .k { display: block; font: 600 10px var(--mono); letter-spacing: 0.14em; color: #ff4d57; margin-bottom: 5px; }
+  #room .k { display: block; font: 600 10px var(--mono); letter-spacing: 0.14em; color: var(--accent-ink); margin-bottom: 5px; }
   #room b { display: block; font: 600 32px/1 var(--display); text-transform: uppercase; letter-spacing: 0.01em; color: var(--ink); margin-bottom: 8px; }
-  #room .m { display: block; font: 400 10px/1.6 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: rgba(241, 238, 234, 0.72); max-width: 370px; }
+  #room .m { display: block; font: 400 10px/1.6 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: rgba(59, 47, 39, 0.72); max-width: 370px; }
 
   /* Live 3D Axonometric CAD Section Radar */
   #cad-key {
@@ -180,48 +187,48 @@
     padding: 6px 9px; font: 500 8.5px/1.2 var(--mono); letter-spacing: 0.1em;
     text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;
   }
-  #cad-key .ck-top i { font-style: normal; color: #ff4d57; font-weight: 600; }
+  #cad-key .ck-top i { font-style: normal; color: var(--accent-ink); font-weight: 600; }
   #cad-key .ck-vp {
     width: 100%; height: 118px; background: transparent;
-    position: relative; border-top: 1px solid rgba(241, 238, 234, 0.3); border-bottom: 1px solid rgba(241, 238, 234, 0.3);
+    position: relative; border-top: 1px solid rgba(59, 47, 39, 0.3); border-bottom: 1px solid rgba(59, 47, 39, 0.3);
   }
   #cad-key .ck-nav {
     display: grid; grid-template-columns: repeat(5, 1fr);
     background: var(--surface);
   }
   #cad-key .ck-nav button {
-    appearance: none; border: 0; border-right: 1px solid rgba(12, 12, 14, 0.14);
-    background: transparent; color: rgba(241, 238, 234, 0.72);
+    appearance: none; border: 0; border-right: 1px solid rgba(243, 235, 219, 0.14);
+    background: transparent; color: rgba(59, 47, 39, 0.72);
     font: 500 8px/1.15 var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
     padding: 6px 2px; cursor: pointer; text-align: center; transition: background 0.15s, color 0.15s;
   }
   #cad-key .ck-nav button:last-child { border-right: 0; }
-  #cad-key .ck-nav button:hover { background: rgba(229, 32, 46, 0.3); color: #fff; }
-  #cad-key .ck-nav button.on { background: var(--accent); color: #fff; font-weight: 600; }
+  #cad-key .ck-nav button:hover { background: rgba(27, 122, 140, 0.16); color: var(--ink); }
+  #cad-key .ck-nav button.on { background: var(--accent); color: var(--paper-hi); font-weight: 600; }
 
   /* the closing section: the studio, after the drawing */
   #closing { position: relative; z-index: 3; background: var(--paper); border-top: 1.5px solid var(--ink); }
   #closing .in { max-width: 1240px; margin: 0 auto; padding: 120px var(--side) 80px; }
-  #closing .kick { font-size: 10.5px; color: var(--mute); font-weight: 500; }
+  #closing .kick { font-size: 10.5px; color: var(--mute-ink); font-weight: 500; }
   #closing h2 {
     font: 600 82px/0.95 var(--display); letter-spacing: -0.01em;
     text-transform: uppercase; margin: 20px 0 28px;
   }
   #closing h2 em {
-    font-style: normal; color: var(--accent);
-    background: rgba(229, 32, 46, 0.1); padding: 0 10px; border-left: 3px solid var(--accent);
+    font-style: normal; color: var(--accent-ink);
+    background: rgba(27, 122, 140, 0.1); padding: 0 10px; border-left: 3px solid var(--accent);
   }
   #closing .lede { font: 500 13px/1.7 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; max-width: 600px; color: var(--ink); margin: 0 0 64px; }
   #closing .facts { display: grid; grid-template-columns: repeat(6, 1fr); border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); font-size: 10px; margin-bottom: 96px; }
   #closing .facts div { padding: 16px 14px 18px 0; }
-  #closing .facts div + div { padding-left: 14px; border-left: 1px solid rgba(241,238,234,0.28); }
-  #closing .facts b { display: block; font-weight: 600; color: var(--accent); font-size: 9px; margin-bottom: 8px; }
+  #closing .facts div + div { padding-left: 14px; border-left: 1px solid rgba(59,47,39,0.28); }
+  #closing .facts b { display: block; font-weight: 600; color: var(--accent-ink); font-size: 9px; margin-bottom: 8px; }
   #closing h3 { font-size: 10.5px; font-weight: 600; margin: 0 0 22px; color: var(--ink); }
   #closing .work { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-bottom: 120px; }
   #closing .work figure { margin: 0; }
-  #closing .work svg { display: block; width: 100%; height: auto; background: #121214; border: 1.5px solid var(--ink); }
+  #closing .work svg { display: block; width: 100%; height: auto; background: var(--paper-hi); border: 1.5px solid var(--ink); }
   #closing .work figcaption { display: flex; justify-content: space-between; font-size: 9.5px; margin-top: 10px; }
-  #closing .work figcaption span { color: var(--mute); text-align: right; }
+  #closing .work figcaption span { color: var(--mute-ink); text-align: right; }
   #closing .cta .go { line-height: 1.9; }
   #closing .cta { display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: end; border-top: 1.5px solid var(--ink); padding-top: 48px; }
   #closing .cta p { font: 600 52px/0.98 var(--display); text-transform: uppercase; letter-spacing: -0.01em; margin: 0; }
@@ -232,16 +239,16 @@
     padding: 14px 22px; text-decoration: none; margin-bottom: 18px;
     font: 600 11px var(--mono); letter-spacing: 0.14em; text-transform: uppercase;
   }
-  #closing .cta .go a::after { content: ' \2192'; color: #ff4d57; margin-left: 6px; }
-  #closing footer { display: flex; justify-content: space-between; max-width: 1240px; margin: 0 auto; padding: 22px var(--side) 30px; font-size: 9.5px; color: var(--mute); border-top: 1px solid rgba(241,238,234,0.22); }
+  #closing .cta .go a::after { content: ' \2192'; color: var(--accent-hi); margin-left: 6px; }
+  #closing footer { display: flex; justify-content: space-between; max-width: 1240px; margin: 0 auto; padding: 22px var(--side) 30px; font-size: 9.5px; color: var(--mute-ink); border-top: 1px solid rgba(59,47,39,0.22); }
 
   #loader { position: fixed; inset: 0; z-index: 6; background: var(--paper); display: grid; place-items: center; transition: opacity 0.6s; }
   #loader.gone { opacity: 0; pointer-events: none; }
   #loader .box { width: 260px; border: 1.5px solid var(--ink); padding: 16px 18px; background: var(--paper); }
-  #loader .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 10px; color: var(--mute); }
-  #loader .lv { display: flex; align-items: center; gap: 8px; color: var(--accent); font-size: 13px; font-weight: 600; }
+  #loader .row { display: flex; justify-content: space-between; align-items: baseline; font-size: 10px; color: var(--mute-ink); }
+  #loader .lv { display: flex; align-items: center; gap: 8px; color: var(--accent-ink); font-size: 13px; font-weight: 600; }
   #loader .lv i { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 9px solid var(--accent); }
-  #loader .rule { height: 2px; background: rgba(241,238,234,0.18); margin-top: 12px; }
+  #loader .rule { height: 2px; background: rgba(59,47,39,0.18); margin-top: 12px; }
   #loader #bar { height: 2px; background: var(--accent); transform-origin: left; transform: scaleX(0); }
 
   .instant .line > span, .instant .block, .instant .hint, .instant #hud, .instant #caption, .instant #loader, .instant header, .instant .dirs, .instant .band, .instant #room, .instant #cad-key { transition: none !important; }
@@ -256,7 +263,7 @@
     .hero h1 .line { display: inline-block; vertical-align: top; }
     .hero h1 .line + .line { margin-left: 0.28em; }
     .hero p { display: none; }
-    .band.top { height: 62px; background: linear-gradient(var(--paper) 46px, rgba(12,12,14,0)); }
+    .band.top { height: 62px; background: linear-gradient(var(--paper) 46px, rgba(243,235,219,0)); }
     #room { top: 54px; max-width: 290px; padding: 9px 13px 10px; }
     #room b { font-size: 22px; margin-bottom: 5px; }
     #room .m { font-size: 8.5px; line-height: 1.5; }
@@ -280,7 +287,7 @@
     #closing .lede { font-size: 11px; margin-bottom: 40px; }
     #closing .facts { grid-template-columns: repeat(2, 1fr); margin-bottom: 64px; }
     #closing .facts div:nth-child(odd) { padding-left: 0; border-left: 0; }
-    #closing .facts div:nth-child(n+3) { border-top: 1px solid rgba(241,238,234,0.25); }
+    #closing .facts div:nth-child(n+3) { border-top: 1px solid rgba(59,47,39,0.25); }
     #closing .work { grid-template-columns: 1fr; gap: 26px; margin-bottom: 72px; }
     #closing .cta { grid-template-columns: 1fr; }
     #closing .cta p { font-size: 36px; }
@@ -300,7 +307,7 @@
     #hud { bottom: 56px; font-size: 8.5px; padding: 5px 9px; }
     #caption { bottom: 86px; font-size: 16px; right: var(--side); }
     .scale { display: none; }
-    .band.top { height: 64px; background: linear-gradient(var(--paper) 50px, rgba(12,12,14,0)); }
+    .band.top { height: 64px; background: linear-gradient(var(--paper) 50px, rgba(243,235,219,0)); }
     .band.bot { right: 0; height: 132px; }
   }
 </style>
@@ -337,35 +344,35 @@
     <h3 class="mono">Casa Dos · Deià, Mallorca</h3>
     <div class="facts mono">
       <div><b>Ort</b>Deià, Mallorca</div><div><b>Fläche</b>196 m²</div><div><b>Ebenen</b>Zwei, 3,10 m Geschosshöhe</div>
-      <div><b>Treppe</b>16 Steigungen à 194 mm</div><div><b>Konstruktion</b>Beton, dunkler Ziegel</div><div><b>Fertig</b>2026</div>
+      <div><b>Treppe</b>16 Steigungen à 194 mm</div><div><b>Konstruktion</b>Beton, Marès-Stein</div><div><b>Fertig</b>2026</div>
     </div>
     <h3 class="mono">Ausgewählte Projekte</h3>
     <div class="work">
-      <figure><svg viewBox="0 0 400 240" role="img" aria-label="Schnitt durch Ca'n Pou, ein Hofhaus auf zwei Terrassen"><defs><pattern id="h1" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#f1eeea" stroke-width="0.7"/></pattern><linearGradient id="f1" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="240"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="0.75" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="m1"><rect width="400" height="240" fill="url(#f1)"/></mask></defs>
+      <figure><svg viewBox="0 0 400 240" role="img" aria-label="Schnitt durch Ca'n Pou, ein Hofhaus auf zwei Terrassen"><defs><pattern id="h1" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#a8734f" stroke-width="0.7"/></pattern><linearGradient id="f1" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="240"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="0.75" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="m1"><rect width="400" height="240" fill="url(#f1)"/></mask></defs>
 <path d="M0 112 L36 112 L36 150 L176 150 L176 192 L400 192 L400 240 L0 240 Z" fill="url(#h1)" mask="url(#m1)"/>
-<path d="M0 112 L36 112 M150 150 L176 150 L176 192 L400 192" fill="none" stroke="#f1eeea" stroke-width="1.6"/>
-<g fill="none" stroke="#f1eeea" stroke-width="0.7"><rect x="50" y="112" width="20" height="26"/><rect x="124" y="112" width="18" height="26"/><rect x="118" y="70" width="22" height="20"/>
+<path d="M0 112 L36 112 M150 150 L176 150 L176 192 L400 192" fill="none" stroke="#3b2f27" stroke-width="1.6"/>
+<g fill="none" stroke="#3b2f27" stroke-width="0.7"><rect x="50" y="112" width="20" height="26"/><rect x="124" y="112" width="18" height="26"/><rect x="118" y="70" width="22" height="20"/>
 <path d="M52 146 h6 v-5 h6 v-5 h6 v-5 h6 v-5 h6 v-5 h6"/><path d="M200 192 v-34 h56 v34 M196 158 h64"/></g>
-<g fill="#f1eeea"><rect x="34" y="62" width="8" height="132"/><rect x="146" y="62" width="8" height="90"/><rect x="34" y="146" width="120" height="6"/><rect x="42" y="100" width="44" height="5"/><rect x="108" y="100" width="40" height="5"/><rect x="30" y="56" width="58" height="7"/><rect x="104" y="56" width="54" height="7"/>
+<g fill="#cf7d68"><rect x="34" y="62" width="8" height="132"/><rect x="146" y="62" width="8" height="90"/><rect x="34" y="146" width="120" height="6"/><rect x="42" y="100" width="44" height="5"/><rect x="108" y="100" width="40" height="5"/><rect x="30" y="56" width="58" height="7"/><rect x="104" y="56" width="54" height="7"/>
 <rect x="174" y="150" width="6" height="44"/><rect x="172" y="188" width="12" height="6"/><rect x="30" y="190" width="16" height="6"/></g>
-<g fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><path d="M97 146 L97 131.6" stroke-width="1.6"/><circle cx="92.05" cy="128.9" r="6.75"/><circle cx="101.5" cy="127.55" r="7.2"/><circle cx="97" cy="123.5" r="7.2"/><circle cx="97" cy="128.45" r="5.3999999999999995" stroke="none"/></g><g fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><path d="M318 192 L318 169.6" stroke-width="1.6"/><circle cx="310.3" cy="165.4" r="10.5"/><circle cx="325.0" cy="163.3" r="11.200000000000001"/><circle cx="318" cy="157.0" r="11.200000000000001"/><circle cx="318" cy="164.7" r="8.4" stroke="none"/></g><path d="M372 134 C367.824 148.5 364.344 168.8 366.084 187.36 Q368.52 192 372 192 Q375.48 192 377.916 187.36 C379.656 168.8 376.176 148.5 372 134 Z" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"/><g transform="translate(66,146) scale(1.1)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(128,146) scale(1.1)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(232,192) scale(1.1)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(291,192) scale(1.1)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g fill="#e5202e" font-family="IBM Plex Mono, monospace" font-size="6.5"><path d="M392 150 l-3.5 -5 h7 z"/><text x="398" y="149">+3.40</text><line x1="370" y1="150" x2="392" y2="150" stroke="#e5202e" stroke-width="0.5" stroke-dasharray="3 2"/></g></svg><figcaption class="mono">Ca'n Pou <span>Sóller · 2024 · ein Hofhaus auf zwei Terrassen</span></figcaption></figure>
-      <figure><svg viewBox="0 0 400 240" role="img" aria-label="Schnitt durch Torre Baixa, ein Steinturm an einem steilen Hang"><defs><pattern id="h2" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#f1eeea" stroke-width="0.7"/></pattern><linearGradient id="f2" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="240"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="0.75" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="m2"><rect width="400" height="240" fill="url(#f2)"/></mask></defs>
+<g fill="#7d8a5c" stroke="#3b2f27" stroke-width="0.85"><path d="M97 146 L97 131.6" stroke-width="1.6"/><circle cx="92.05" cy="128.9" r="6.75"/><circle cx="101.5" cy="127.55" r="7.2"/><circle cx="97" cy="123.5" r="7.2"/><circle cx="97" cy="128.45" r="5.3999999999999995" stroke="none"/></g><g fill="#7d8a5c" stroke="#3b2f27" stroke-width="0.85"><path d="M318 192 L318 169.6" stroke-width="1.6"/><circle cx="310.3" cy="165.4" r="10.5"/><circle cx="325.0" cy="163.3" r="11.200000000000001"/><circle cx="318" cy="157.0" r="11.200000000000001"/><circle cx="318" cy="164.7" r="8.4" stroke="none"/></g><path d="M372 134 C367.824 148.5 364.344 168.8 366.084 187.36 Q368.52 192 372 192 Q375.48 192 377.916 187.36 C379.656 168.8 376.176 148.5 372 134 Z" fill="#5f7550" stroke="#3b2f27" stroke-width="0.85"/><g transform="translate(66,146) scale(1.1)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(128,146) scale(1.1)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(232,192) scale(1.1)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(291,192) scale(1.1)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g fill="#17667a" font-family="IBM Plex Mono, monospace" font-size="6.5"><path d="M392 150 l-3.5 -5 h7 z"/><text x="398" y="149">+3.40</text><line x1="370" y1="150" x2="392" y2="150" stroke="#17667a" stroke-width="0.5" stroke-dasharray="3 2"/></g></svg><figcaption class="mono">Ca'n Pou <span>Sóller · 2024 · ein Hofhaus auf zwei Terrassen</span></figcaption></figure>
+      <figure><svg viewBox="0 0 400 240" role="img" aria-label="Schnitt durch Torre Baixa, ein Steinturm an einem steilen Hang"><defs><pattern id="h2" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#a8734f" stroke-width="0.7"/></pattern><linearGradient id="f2" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="240"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="0.75" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="m2"><rect width="400" height="240" fill="url(#f2)"/></mask></defs>
 <path d="M0 96 L118 96 L170 132 L170 206 L240 206 L240 176 L400 222 L400 240 L0 240 Z" fill="url(#h2)" mask="url(#m2)"/>
-<path d="M0 96 L118 96 L170 132 M240 176 L400 222" fill="none" stroke="#f1eeea" stroke-width="1.6"/>
-<g fill="none" stroke="#f1eeea" stroke-width="0.7"><rect x="188" y="40" width="16" height="20"/><rect x="214" y="76" width="14" height="18"/><rect x="188" y="112" width="16" height="18"/><rect x="214" y="150" width="14" height="18"/>
+<path d="M0 96 L118 96 L170 132 M240 176 L400 222" fill="none" stroke="#3b2f27" stroke-width="1.6"/>
+<g fill="none" stroke="#3b2f27" stroke-width="0.7"><rect x="188" y="40" width="16" height="20"/><rect x="214" y="76" width="14" height="18"/><rect x="188" y="112" width="16" height="18"/><rect x="214" y="150" width="14" height="18"/>
 <path d="M180 202 h9 v-6 h9 v-6 h9 v-6 h9 v-6 h9 v-6 M231 166 h-9 v-6 h-9 v-6 h-9 v-6 h-9 v-6 h-9 v-6 M180 130 h9 v-6 h9 v-6 h9 v-6 h9 v-6 h9 v-6 M231 94 h-9 v-6 h-9 v-6 h-9 v-6 h-9 v-6 h-9 v-6"/></g>
-<g fill="#f1eeea"><rect x="170" y="26" width="10" height="182"/><rect x="232" y="26" width="10" height="160"/><rect x="170" y="202" width="72" height="8"/><rect x="180" y="166" width="52" height="5"/><rect x="180" y="130" width="52" height="5"/><rect x="180" y="94" width="52" height="5"/><rect x="180" y="58" width="52" height="5"/><rect x="164" y="20" width="84" height="8"/>
+<g fill="#cf7d68"><rect x="170" y="26" width="10" height="182"/><rect x="232" y="26" width="10" height="160"/><rect x="170" y="202" width="72" height="8"/><rect x="180" y="166" width="52" height="5"/><rect x="180" y="130" width="52" height="5"/><rect x="180" y="94" width="52" height="5"/><rect x="180" y="58" width="52" height="5"/><rect x="164" y="20" width="84" height="8"/>
 <rect x="128" y="94" width="42" height="4"/></g>
-<g fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><path d="M320 199 L320 179.8" stroke-width="1.6"/><circle cx="313.4" cy="176.2" r="9.0"/><circle cx="326.0" cy="174.4" r="9.600000000000001"/><circle cx="320" cy="169.0" r="9.600000000000001"/><circle cx="320" cy="175.6" r="7.199999999999999" stroke="none"/></g><path d="M66 44 C62.256 57.0 59.135999999999996 75.2 60.696 91.84 Q62.88 96 66 96 Q69.12 96 71.304 91.84 C72.864 75.2 69.744 57.0 66 44 Z" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"/><g transform="translate(146,94) scale(1.0)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(206,202) scale(1.0)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(214,130) scale(1.0)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g fill="#e5202e" font-family="IBM Plex Mono, monospace" font-size="6.5"><path d="M392 94 l-3.5 -5 h7 z"/><text x="398" y="93">+18.20</text><line x1="370" y1="94" x2="392" y2="94" stroke="#e5202e" stroke-width="0.5" stroke-dasharray="3 2"/></g></svg><figcaption class="mono">Torre Baixa <span>Valldemossa · 2023 · ein Steinturm an einem steilen Weg</span></figcaption></figure>
-      <figure><svg viewBox="0 0 400 240" role="img" aria-label="Schnitt durch Es Racó, ein Haus unter einem Gartendach"><defs><pattern id="h3" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#f1eeea" stroke-width="0.7"/></pattern><linearGradient id="f3" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="240"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="0.75" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="m3"><rect width="400" height="240" fill="url(#f3)"/></mask></defs>
+<g fill="#7d8a5c" stroke="#3b2f27" stroke-width="0.85"><path d="M320 199 L320 179.8" stroke-width="1.6"/><circle cx="313.4" cy="176.2" r="9.0"/><circle cx="326.0" cy="174.4" r="9.600000000000001"/><circle cx="320" cy="169.0" r="9.600000000000001"/><circle cx="320" cy="175.6" r="7.199999999999999" stroke="none"/></g><path d="M66 44 C62.256 57.0 59.135999999999996 75.2 60.696 91.84 Q62.88 96 66 96 Q69.12 96 71.304 91.84 C72.864 75.2 69.744 57.0 66 44 Z" fill="#5f7550" stroke="#3b2f27" stroke-width="0.85"/><g transform="translate(146,94) scale(1.0)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(206,202) scale(1.0)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(214,130) scale(1.0)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g fill="#17667a" font-family="IBM Plex Mono, monospace" font-size="6.5"><path d="M392 94 l-3.5 -5 h7 z"/><text x="398" y="93">+18.20</text><line x1="370" y1="94" x2="392" y2="94" stroke="#17667a" stroke-width="0.5" stroke-dasharray="3 2"/></g></svg><figcaption class="mono">Torre Baixa <span>Valldemossa · 2023 · ein Steinturm an einem steilen Weg</span></figcaption></figure>
+      <figure><svg viewBox="0 0 400 240" role="img" aria-label="Schnitt durch Es Racó, ein Haus unter einem Gartendach"><defs><pattern id="h3" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#a8734f" stroke-width="0.7"/></pattern><linearGradient id="f3" gradientUnits="userSpaceOnUse" x1="0" y1="110" x2="0" y2="240"><stop offset="0" stop-color="#fff" stop-opacity="0.9"/><stop offset="0.75" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="m3"><rect width="400" height="240" fill="url(#f3)"/></mask></defs>
 <path d="M0 104 L78 104 L184 132 L184 142 L214 142 L214 132 L300 150 L300 192 L404 192 L404 240 L0 240 Z" fill="url(#h3)" mask="url(#m3)"/>
-<path d="M0 104 L78 104 L178 130 M220 131 L300 150 M346 192 L400 192" fill="none" stroke="#f1eeea" stroke-width="1.6"/>
-<rect x="306" y="181" width="40" height="9" fill="#3a3f44" stroke="#f1eeea" stroke-width="0.7"/>
-<g fill="none" stroke="#f1eeea" stroke-width="0.7"><line x1="300" y1="152" x2="300" y2="190"/><line x1="296" y1="152" x2="296" y2="190"/><rect x="112" y="156" width="40" height="22"/><rect x="236" y="158" width="36" height="20"/>
+<path d="M0 104 L78 104 L178 130 M220 131 L300 150 M346 192 L400 192" fill="none" stroke="#3b2f27" stroke-width="1.6"/>
+<rect x="306" y="181" width="40" height="9" fill="#58a6ae" stroke="#3b2f27" stroke-width="0.7"/>
+<g fill="none" stroke="#3b2f27" stroke-width="0.7"><line x1="300" y1="152" x2="300" y2="190"/><line x1="296" y1="152" x2="296" y2="190"/><rect x="112" y="156" width="40" height="22"/><rect x="236" y="158" width="36" height="20"/>
 <path d="M100 104 q4 -10 8 0 M132 112 q5 -12 10 0 M248 136 q4 -9 8 0 M268 141 q3 -8 6 0"/></g>
-<g fill="#f1eeea"><rect x="78" y="104" width="8" height="90"/><rect x="78" y="188" width="228" height="7"/><rect x="86" y="140" width="98" height="7"/><rect x="214" y="140" width="92" height="7"/><rect x="182" y="132" width="4" height="10"/><rect x="212" y="132" width="4" height="10"/>
+<g fill="#cf7d68"><rect x="78" y="104" width="8" height="90"/><rect x="78" y="188" width="228" height="7"/><rect x="86" y="140" width="98" height="7"/><rect x="214" y="140" width="92" height="7"/><rect x="182" y="132" width="4" height="10"/><rect x="212" y="132" width="4" height="10"/>
 <rect x="302" y="181" width="4" height="13"/><rect x="346" y="181" width="4" height="13"/><rect x="302" y="190" width="48" height="4"/></g>
-<g fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><path d="M199 188 L199 170.4" stroke-width="1.6"/><circle cx="192.95" cy="167.1" r="8.25"/><circle cx="204.5" cy="165.45" r="8.8"/><circle cx="199" cy="160.5" r="8.8"/><circle cx="199" cy="166.55" r="6.6" stroke="none"/></g><path d="M42 58 C38.688 69.5 35.928 85.6 37.308 100.32 Q39.24 104 42 104 Q44.76 104 46.692 100.32 C48.072 85.6 45.312 69.5 42 58 Z" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"/><g transform="translate(132,188) scale(1.05)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(256,188) scale(1.05)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(368,192) scale(1.05)" fill="#0c0c0e" stroke="#f1eeea" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g fill="#e5202e" font-family="IBM Plex Mono, monospace" font-size="6.5"><path d="M392 150 l-3.5 -5 h7 z"/><text x="398" y="149">+4.10</text><line x1="370" y1="150" x2="392" y2="150" stroke="#e5202e" stroke-width="0.5" stroke-dasharray="3 2"/></g></svg><figcaption class="mono">Es Racó <span>Pollença · 2022 · ein Haus unter seinem Garten</span></figcaption></figure>
+<g fill="#7d8a5c" stroke="#3b2f27" stroke-width="0.85"><path d="M199 188 L199 170.4" stroke-width="1.6"/><circle cx="192.95" cy="167.1" r="8.25"/><circle cx="204.5" cy="165.45" r="8.8"/><circle cx="199" cy="160.5" r="8.8"/><circle cx="199" cy="166.55" r="6.6" stroke="none"/></g><path d="M42 58 C38.688 69.5 35.928 85.6 37.308 100.32 Q39.24 104 42 104 Q44.76 104 46.692 100.32 C48.072 85.6 45.312 69.5 42 58 Z" fill="#5f7550" stroke="#3b2f27" stroke-width="0.85"/><g transform="translate(132,188) scale(1.05)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(256,188) scale(1.05)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g transform="translate(368,192) scale(1.05)" fill="#f9f3e7" stroke="#3b2f27" stroke-width="0.85"><circle cx="0" cy="-15.6" r="2.05"/><path d="M-3 -13.2 h6 l-0.6 6.6 l0.35 6.6 h-1.9 l-0.85 -5.5 l-0.85 5.5 h-1.9 l0.35 -6.6 z"/></g><g fill="#17667a" font-family="IBM Plex Mono, monospace" font-size="6.5"><path d="M392 150 l-3.5 -5 h7 z"/><text x="398" y="149">+4.10</text><line x1="370" y1="150" x2="392" y2="150" stroke="#17667a" stroke-width="0.5" stroke-dasharray="3 2"/></g></svg><figcaption class="mono">Es Racó <span>Pollença · 2022 · ein Haus unter seinem Garten</span></figcaption></figure>
     </div>
     <div class="cta">
       <p>Beginnen Sie<br>mit einem Schnitt.</p>
