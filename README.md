@@ -1,4 +1,6 @@
-# three.js Demo 3
+# three.js Demo 5
+
+In der Übersicht und in der durchlaufenden Schau ist das die Nummer 5; das Repository heißt weiter `threejs-demo-3`, damit alle Adressen gültig bleiben.
 
 Ein flacher Schnitt 1:100 durch ein Haus auf zwei Ebenen zeichnet sich selbst, als Aquarell mit Bleistift auf Bütten. Beim Scrollen öffnet sich das Objektiv, während der Schnitt exakt seine Größe behält, sodass die Räume dahinter in eine Schnittperspektive zurückweichen. Ein Scan verwandelt die Zeichnung in Material und Licht, dann besucht die Kamera das Haus Raum für Raum, immer mit Blick auf den Schnitt, und endet beim Schnitt in Material und Licht.
 
